@@ -63,3 +63,4 @@ __pycache__/
 /venv/
 /wheels/
 .flatpak
+.claude/
