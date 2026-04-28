@@ -38,6 +38,7 @@ private slots:
     void onEditClicked();
     void onDeleteClicked();
     void onSetActiveClicked();
+    void onCloneClicked();
     void onItemDoubleClicked(QListWidgetItem *item);
     void refreshModelList();
 
@@ -54,5 +55,6 @@ private:
     QPushButton *m_editButton;
     QPushButton *m_deleteButton;
     QPushButton *m_setActiveButton;
+    QPushButton *m_cloneButton;
 };
 #endif // MODELSELECTORDIALOG_H

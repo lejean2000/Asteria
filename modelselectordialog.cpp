@@ -28,12 +28,14 @@ ModelSelectorDialog::ModelSelectorDialog(QWidget *parent)
     m_editButton = new QPushButton(tr("Edit"), this);
     m_deleteButton = new QPushButton(tr("Delete"), this);
     m_setActiveButton = new QPushButton(tr("Set Active"), this);
+    m_cloneButton = new QPushButton(tr("Clone"), this);
     QPushButton *closeButton = new QPushButton(tr("Close"), this);
 
     // Initially disable buttons that require a selection
     m_editButton->setEnabled(false);
     m_deleteButton->setEnabled(false);
     m_setActiveButton->setEnabled(false);
+    m_cloneButton->setEnabled(false);
 
     // Layout
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -42,6 +44,7 @@ ModelSelectorDialog::ModelSelectorDialog(QWidget *parent)
     QHBoxLayout *buttonLayout = new QHBoxLayout();
     buttonLayout->addWidget(addButton);
     buttonLayout->addWidget(m_editButton);
+    buttonLayout->addWidget(m_cloneButton);
     buttonLayout->addWidget(m_deleteButton);
     buttonLayout->addWidget(m_setActiveButton);
     buttonLayout->addStretch();
@@ -51,6 +54,7 @@ ModelSelectorDialog::ModelSelectorDialog(QWidget *parent)
     // Connect signals
     connect(addButton, &QPushButton::clicked, this, &ModelSelectorDialog::onAddClicked);
     connect(m_editButton, &QPushButton::clicked, this, &ModelSelectorDialog::onEditClicked);
+    connect(m_cloneButton, &QPushButton::clicked, this, &ModelSelectorDialog::onCloneClicked);
     connect(m_deleteButton, &QPushButton::clicked, this, &ModelSelectorDialog::onDeleteClicked);
     connect(m_setActiveButton, &QPushButton::clicked, this, &ModelSelectorDialog::onSetActiveClicked);
     connect(closeButton, &QPushButton::clicked, this, &QDialog::accept);
@@ -58,6 +62,7 @@ ModelSelectorDialog::ModelSelectorDialog(QWidget *parent)
     connect(m_listWidget, &QListWidget::itemSelectionChanged, this, [this]() {
         bool hasSelection = m_listWidget->currentItem() != nullptr;
         m_editButton->setEnabled(hasSelection);
+        m_cloneButton->setEnabled(hasSelection);
         m_deleteButton->setEnabled(hasSelection);
         m_setActiveButton->setEnabled(hasSelection);
     });
@@ -228,6 +233,50 @@ void ModelSelectorDialog::onDeleteClicked()
     saveModels();
     refreshModelList();
     emit modelsChanged();
+}
+
+void ModelSelectorDialog::onCloneClicked()
+{
+    QListWidgetItem *current = m_listWidget->currentItem();
+    if (!current) return;
+
+    // Find the source model
+    const QString srcName = current->text();
+    Model source;
+    bool found = false;
+    for (const Model &m : m_models) {
+        if (m.name == srcName) {
+            source = m;
+            found = true;
+            break;
+        }
+    }
+    if (!found) return;
+
+    // Generate a unique name: "Name Copy", "Name Copy 2", "Name Copy 3", …
+    const QString baseName = source.name + tr(" Copy");
+    QString newName = baseName;
+    int counter = 2;
+    while (modelNameExists(newName)) {
+        newName = baseName + " " + QString::number(counter++);
+    }
+
+    // Build the clone
+    Model clone = source;
+    clone.name = newName;
+
+    m_models.append(clone);
+    saveModels();
+    refreshModelList();
+    emit modelsChanged();
+
+    // Select the newly created clone in the list
+    for (int i = 0; i < m_listWidget->count(); ++i) {
+        if (m_listWidget->item(i)->text() == newName) {
+            m_listWidget->setCurrentRow(i);
+            break;
+        }
+    }
 }
 
 void ModelSelectorDialog::onSetActiveClicked()
