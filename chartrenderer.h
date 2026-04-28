@@ -74,8 +74,12 @@ class ChartRenderer : public QGraphicsView
 public:
     explicit ChartRenderer(QWidget *parent = nullptr);
     ~ChartRenderer();
-    // Set the chart data to render
+    // Set the chart data to render (single chart)
     void setChartData(const ChartData &data);
+    // Set dual natal+progressed chart data (bi-wheel)
+    void setDualChartData(const ChartData &natal,
+                          const ChartData &progressed,
+                          const QVector<AspectData> &interAspects);
     // Clear the chart
     void clearChart();
     // Render the chart
@@ -101,6 +105,14 @@ private:
     void drawPlanets();
     void drawAspects();
 
+    // Dual chart helpers
+    void renderDualChart();
+    void drawNatalHouseCuspsDual(double outerLimit);
+    void drawProgressedHouseCusps(double outerLimit, double innerLimit);
+    void drawPlanetsInZone(const QVector<PlanetData> &planets, double baseRadius,
+                           double minRadius, QMap<QString, PlanetItem*> &itemMap);
+    void drawInterAspects();
+
     // Helper for planet rendering
     void drawPlanet(const PlanetData &planet, double radius);
 
@@ -119,12 +131,16 @@ private:
     QString signSymbol(const QString &signName);
 
     QGraphicsScene *m_scene;
-    ChartData m_chartData;
+    ChartData m_chartData;          // natal (or single-chart) data
+    ChartData m_progressedChartData;
+    QVector<AspectData> m_interAspects;
+    bool m_isDualChart;
 
     // Chart elements
     QGraphicsEllipseItem *m_outerWheel;
     QGraphicsEllipseItem *m_innerWheel;
-    QMap<QString, PlanetItem*> m_planetItems;
+    QMap<QString, PlanetItem*> m_planetItems;           // natal planets
+    QMap<QString, PlanetItem*> m_progressedPlanetItems; // progressed planets (dual mode)
     QList<AspectItem*> m_aspectItems;
     QList<QGraphicsLineItem*> m_houseCuspLines;
     QList<QGraphicsTextItem*> m_signTexts;

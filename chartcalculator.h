@@ -214,6 +214,12 @@ private:
     QString findHouse(double longitude, const QVector<HouseData> &houses) const;
     QVector<AspectData> calculateAspects(const QVector<PlanetData> &planets, double orbMax) const;
 
+public:
+    // Calculate aspects between two different planet sets (for bi-wheel interaspects)
+    QVector<AspectData> calculateInteraspects(const QVector<PlanetData> &outerPlanets,
+                                              const QVector<PlanetData> &innerPlanets,
+                                              double orbMax = 8.0) const;
+
     // Swiss Ephemeris calculation methods
     QVector<HouseData> calculateHouseCusps(double jd, double lat, double lon, const QString &houseSystem) const;
     QVector<PlanetData> calculatePlanetPositions(double jd, const QVector<HouseData> &houses) const;

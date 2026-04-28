@@ -1,6 +1,7 @@
 #include "aspectarianwidget.h"
 #include <QHeaderView>
 #include <QDebug>
+#include <QTabBar>
 
 extern QString g_astroFontFamily;
 
@@ -11,10 +12,29 @@ AspectarianWidget::AspectarianWidget(QWidget *parent)
     setupUi();
 }
 
+static QTableWidget* makeAspectTable(QWidget *parent)
+{
+    QTableWidget *t = new QTableWidget(parent);
+    t->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    t->setSelectionMode(QAbstractItemView::SingleSelection);
+    t->setSelectionBehavior(QAbstractItemView::SelectItems);
+    t->setShowGrid(true);
+    t->setGridStyle(Qt::SolidLine);
+    t->horizontalHeader()->setVisible(true);
+    t->verticalHeader()->setVisible(true);
+    t->setSizeAdjustPolicy(QAbstractScrollArea::AdjustIgnored);
+    t->horizontalHeader()->setMinimumSectionSize(1);
+    t->verticalHeader()->setMinimumSectionSize(1);
+    t->setWordWrap(false);
+    t->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    t->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    t->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    return t;
+}
+
 void AspectarianWidget::setupUi() {
     QVBoxLayout *layout = new QVBoxLayout(this);
 
-    // Title label
     m_titleLabel = new QLabel("Aspectarian", this);
     QFont titleFont = m_titleLabel->font();
     titleFont.setBold(true);
@@ -22,44 +42,51 @@ void AspectarianWidget::setupUi() {
     m_titleLabel->setFont(titleFont);
     m_titleLabel->setAlignment(Qt::AlignCenter);
 
-    // Create table
-    m_table = new QTableWidget(this);
+    m_table      = makeAspectTable(this);
+    m_interTable = makeAspectTable(this);
 
+    m_tabWidget = new QTabWidget(this);
+    m_tabWidget->addTab(m_table,      "Aspects");
+    m_tabWidget->addTab(m_interTable, "Prog → Natal");
+    m_tabWidget->tabBar()->setVisible(false);
+    m_tabWidget->setTabVisible(1, false);
 
-
-    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_table->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_table->setSelectionBehavior(QAbstractItemView::SelectItems);
-    m_table->setShowGrid(true);
-    m_table->setGridStyle(Qt::SolidLine);
-    m_table->horizontalHeader()->setVisible(true);
-    m_table->verticalHeader()->setVisible(true);
-
-    // Mitigate Qt 6.9 size-hint dominance so splitter moves contract/expand cells
-    m_table->setSizeAdjustPolicy(QAbstractScrollArea::AdjustIgnored);
-    m_table->horizontalHeader()->setMinimumSectionSize(1);
-    m_table->verticalHeader()->setMinimumSectionSize(1);
-    m_table->setWordWrap(false);
-
-    // Make the table expand to fill available space
-    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_table->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-
-    // Add widgets to layout
     layout->addWidget(m_titleLabel);
-    layout->addWidget(m_table);
+    layout->addWidget(m_tabWidget);
     setLayout(layout);
-
-    // Set the size policy to expand in both directions
-    m_table->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-
 }
 
 void AspectarianWidget::updateData(const ChartData &chartData)
 {
+    // Revert to single-chart mode
+    m_tabWidget->setTabText(0, "Aspects");
+    m_tabWidget->tabBar()->setVisible(false);
+    m_tabWidget->setTabVisible(1, false);
+    m_tabWidget->setCurrentIndex(0);
+    m_interTable->clear();
+    m_interTable->setRowCount(0);
+    m_interTable->setColumnCount(0);
+
+    fillAspectTable(m_table, chartData);
+}
+
+void AspectarianWidget::updateDualData(const ChartData &natal,
+                                       const ChartData &progressed,
+                                       const QVector<AspectData> &interAspects)
+{
+    m_tabWidget->setTabText(0, "Prog → Prog");
+    m_tabWidget->setTabVisible(1, true);
+    m_tabWidget->tabBar()->setVisible(true);
+    m_tabWidget->setCurrentIndex(1);   // default: Prog → Natal
+
+    fillAspectTable(m_table, progressed);           // Tab 0: within-progressed aspects
+    fillInterTable(m_interTable, natal, progressed, interAspects);  // Tab 1: interaspects
+}
+
+void AspectarianWidget::fillAspectTable(QTableWidget *table, const ChartData &chartData)
+{
     // Clear the table
-    m_table->clear();
+    table->clear();
 
     // Get list of planets to display
     QStringList planets;
@@ -102,14 +129,14 @@ void AspectarianWidget::updateData(const ChartData &chartData)
 
     // Set up table dimensions
     int numPlanets = displayPlanets.size();
-    m_table->setRowCount(numPlanets);
-    m_table->setColumnCount(numPlanets);
+    table->setRowCount(numPlanets);
+    table->setColumnCount(numPlanets);
 
     // Re-apply header modes/minimums after model geometry changes (Qt 6.9 may reset these)
-    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_table->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_table->horizontalHeader()->setMinimumSectionSize(1);
-    m_table->verticalHeader()->setMinimumSectionSize(1);
+    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->horizontalHeader()->setMinimumSectionSize(1);
+    table->verticalHeader()->setMinimumSectionSize(1);
 
     // Create symbol headers
     QStringList symbolHeaders;
@@ -118,50 +145,23 @@ void AspectarianWidget::updateData(const ChartData &chartData)
     }
 
     // Set headers with symbols
-    m_table->setHorizontalHeaderLabels(symbolHeaders);
-    m_table->setVerticalHeaderLabels(symbolHeaders);
+    table->setHorizontalHeaderLabels(symbolHeaders);
+    table->setVerticalHeaderLabels(symbolHeaders);
 
-    // Set fixed font size for headers instead of incrementing
-    QFont headerFont = m_table->font();
-    headerFont.setPointSize(14); // Use a fixed size instead of incrementing
-    //headerFont.setBold(true);    // Make the font bold
-
+    // Set font for headers
+    QFont headerFont = table->font();
+    headerFont.setPointSize(14);
     if (!g_astroFontFamily.isEmpty()) {
         headerFont = QFont(g_astroFontFamily, 14);
-        //headerFont.setBold(true); // Make sure to set bold after creating the new font
-
     }
+    table->horizontalHeader()->setFont(headerFont);
+    table->verticalHeader()->setFont(headerFont);
 
-
-    m_table->horizontalHeader()->setFont(headerFont);
-    m_table->verticalHeader()->setFont(headerFont);
-
-
-    // ALSO apply font to each individual header item
     for (int i = 0; i < numPlanets; i++) {
-        // Horizontal header items
-        QTableWidgetItem* hItem = m_table->horizontalHeaderItem(i);
-        if (hItem) {
-            hItem->setFont(headerFont);
-        }
-
-        // Vertical header items
-        QTableWidgetItem* vItem = m_table->verticalHeaderItem(i);
-        if (vItem) {
-            vItem->setFont(headerFont);
-        }
-    }
-
-    // Set tooltips for headers
-    for (int i = 0; i < numPlanets; i++) {
-        QTableWidgetItem* hItem = m_table->horizontalHeaderItem(i);
-        QTableWidgetItem* vItem = m_table->verticalHeaderItem(i);
-        if (hItem) {
-            hItem->setToolTip(displayPlanets[i]);
-        }
-        if (vItem) {
-            vItem->setToolTip(displayPlanets[i]);
-        }
+        QTableWidgetItem* hItem = table->horizontalHeaderItem(i);
+        QTableWidgetItem* vItem = table->verticalHeaderItem(i);
+        if (hItem) { hItem->setFont(headerFont); hItem->setToolTip(displayPlanets[i]); }
+        if (vItem) { vItem->setFont(headerFont); vItem->setToolTip(displayPlanets[i]); }
     }
 
     // Create a map for quick planet lookup
@@ -177,33 +177,100 @@ void AspectarianWidget::updateData(const ChartData &chartData)
         }
         int row = planetIndices[toString(aspect.planet1)];
         int col = planetIndices[toString(aspect.planet2)];
-        // Only fill the upper triangle of the table (avoid duplicates)
-        if (row > col) {
-            std::swap(row, col);
-        }
+        if (row > col) { std::swap(row, col); }
 
-        // Create item with ONLY the aspect symbol
-        QString aspectText = aspectSymbol(aspect.aspectType);
-        QTableWidgetItem *item = new QTableWidgetItem(aspectText);
+        QFont symbolFont = table->font();
+        symbolFont.setPointSize(14);
+
+        QTableWidgetItem *item = new QTableWidgetItem(aspectSymbol(aspect.aspectType));
         item->setTextAlignment(Qt::AlignCenter);
-
-        // Use fixed font size for aspect symbols
-        QFont symbolFont = m_table->font();
-        symbolFont.setPointSize(14); // Use a fixed size instead of incrementing
         item->setFont(symbolFont);
-
-        // Set background color based on aspect type
-        QColor color = aspectColor(aspect.aspectType);
-        item->setBackground(color);
-
-        // Set tooltip with more information
+        item->setBackground(aspectColor(aspect.aspectType));
         item->setToolTip(QString("%1 %2 %3 (Orb: %4°)")
                              .arg(toString(aspect.planet1))
                              .arg(toString(aspect.aspectType))
                              .arg(toString(aspect.planet2))
                              .arg(aspect.orb, 0, 'f', 2));
+        table->setItem(row, col, item);
+    }
+}
 
-        m_table->setItem(row, col, item);
+void AspectarianWidget::fillInterTable(QTableWidget *table,
+                                        const ChartData &natal,
+                                        const ChartData &progressed,
+                                        const QVector<AspectData> &interAspects)
+{
+    table->clear();
+
+    static const QStringList orderedPlanets = {
+        "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn",
+        "Uranus", "Neptune", "Pluto", "Chiron", "North Node", "South Node",
+        "Pars Fortuna", "Syzygy",
+        "Lilith", "Ceres", "Pallas", "Juno", "Vesta",
+        "Vertex", "East Point", "Part of Spirit"
+    };
+
+    // Build display lists in order
+    auto buildList = [&](const ChartData &cd) {
+        QStringList have;
+        for (const PlanetData &p : cd.planets) have << toString(p.id);
+        QStringList result;
+        for (const QString &n : orderedPlanets) if (have.contains(n)) result << n;
+        for (const QString &n : have) if (!result.contains(n)) result << n;
+        return result;
+    };
+    QStringList progPlanets  = buildList(progressed);
+    QStringList natalPlanets = buildList(natal);
+
+    // Rows = progressed, Columns = natal
+    table->setRowCount(progPlanets.size());
+    table->setColumnCount(natalPlanets.size());
+    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->horizontalHeader()->setMinimumSectionSize(1);
+    table->verticalHeader()->setMinimumSectionSize(1);
+
+    QStringList colHeaders, rowHeaders;
+    for (const QString &p : natalPlanets)  colHeaders << planetSymbol(p);
+    for (const QString &p : progPlanets)   rowHeaders << planetSymbol(p);
+    table->setHorizontalHeaderLabels(colHeaders);
+    table->setVerticalHeaderLabels(rowHeaders);
+
+    QFont headerFont = table->font();
+    headerFont.setPointSize(14);
+    if (!g_astroFontFamily.isEmpty()) headerFont = QFont(g_astroFontFamily, 14);
+    table->horizontalHeader()->setFont(headerFont);
+    table->verticalHeader()->setFont(headerFont);
+    for (int i = 0; i < natalPlanets.size(); i++) {
+        auto *h = table->horizontalHeaderItem(i);
+        if (h) { h->setFont(headerFont); h->setToolTip(natalPlanets[i] + " (Natal)"); }
+    }
+    for (int i = 0; i < progPlanets.size(); i++) {
+        auto *v = table->verticalHeaderItem(i);
+        if (v) { v->setFont(headerFont); v->setToolTip(progPlanets[i] + " (Prog)"); }
+    }
+
+    // Build index maps
+    QMap<QString,int> progIdx, natalIdx;
+    for (int i = 0; i < progPlanets.size();  ++i) progIdx[progPlanets[i]]   = i;
+    for (int i = 0; i < natalPlanets.size(); ++i) natalIdx[natalPlanets[i]] = i;
+
+    // Fill interaspects (all combos, no triangle — rows and cols are different sets)
+    QFont symFont = table->font();
+    symFont.setPointSize(14);
+    for (const AspectData &aspect : interAspects) {
+        QString p1 = toString(aspect.planet1);  // progressed
+        QString p2 = toString(aspect.planet2);  // natal
+        if (!progIdx.contains(p1) || !natalIdx.contains(p2)) continue;
+
+        QTableWidgetItem *item = new QTableWidgetItem(aspectSymbol(aspect.aspectType));
+        item->setTextAlignment(Qt::AlignCenter);
+        item->setFont(symFont);
+        item->setBackground(aspectColor(aspect.aspectType));
+        item->setToolTip(QString("%1 (P) %2 %3 (N)  Orb: %4°")
+                             .arg(p1).arg(toString(aspect.aspectType)).arg(p2)
+                             .arg(aspect.orb, 0, 'f', 2));
+        table->setItem(progIdx[p1], natalIdx[p2], item);
     }
 }
 

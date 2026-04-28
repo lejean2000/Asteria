@@ -168,6 +168,7 @@ void AspectItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
 ChartRenderer::ChartRenderer(QWidget *parent)
     : QGraphicsView(parent)
     , m_scene(new QGraphicsScene(this))
+    , m_isDualChart(false)
     , m_outerWheel(nullptr)
     , m_innerWheel(nullptr)
     , m_showAspects(true)
@@ -198,7 +199,17 @@ ChartRenderer::~ChartRenderer()
 void ChartRenderer::setChartData(const ChartData &data)
 {
     m_chartData = data;
-    //renderChart();
+    m_isDualChart = false;
+}
+
+void ChartRenderer::setDualChartData(const ChartData &natal,
+                                     const ChartData &progressed,
+                                     const QVector<AspectData> &interAspects)
+{
+    m_chartData           = natal;
+    m_progressedChartData = progressed;
+    m_interAspects        = interAspects;
+    m_isDualChart         = true;
 }
 
 void ChartRenderer::clearChart()
@@ -206,13 +217,12 @@ void ChartRenderer::clearChart()
     m_scene->clear();
 
     m_planetItems.clear();
-
+    m_progressedPlanetItems.clear();
     m_aspectItems.clear();
     m_houseCuspLines.clear();
     m_signTexts.clear();
     m_outerWheel = nullptr;
     m_innerWheel = nullptr;
-
 }
 
 void ChartRenderer::renderChart()
@@ -222,22 +232,22 @@ void ChartRenderer::renderChart()
         return;
     }
 
-    drawChartWheel();
-    //testing
-    drawAngles();
-
-    drawZodiacSigns();
-    if (m_showHouseCusps) {
-        drawHouseCusps();
-        drawHouseRing(); // Added this line to draw the house ring
+    if (m_isDualChart) {
+        renderDualChart();
+    } else {
+        drawChartWheel();
+        drawAngles();
+        drawZodiacSigns();
+        if (m_showHouseCusps) {
+            drawHouseCusps();
+            drawHouseRing();
+        }
+        drawPlanets();
+        if (m_showAspects) {
+            drawAspects();
+        }
     }
-    //drawAngles();
-    drawPlanets();
 
-    if (m_showAspects) {
-        drawAspects();
-    }
-    // Ensure the view is centered
     centerOn(0, 0);
 }
 
@@ -1216,5 +1226,216 @@ double ChartRenderer::getAscendantLongitude() const {
         }
     }
     return 0.0; // Fallback if not found
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bi-wheel (dual natal + progressed) rendering
+// ─────────────────────────────────────────────────────────────────────────────
+
+void ChartRenderer::renderDualChart()
+{
+    double outerRadius    = m_chartSize / 2.0;
+    double zodiacInner    = outerRadius - m_wheelThickness;   // inner edge of zodiac band
+    double dividingRadius = outerRadius * 0.58;               // ring separating prog / natal
+
+    // 1. Zodiac ring + signs (orientation anchored to natal ASC via m_chartData)
+    drawChartWheel();
+    drawZodiacSigns();
+
+    // 2. Dividing ring
+    QGraphicsEllipseItem *divider = new QGraphicsEllipseItem(
+        -dividingRadius, -dividingRadius, dividingRadius * 2, dividingRadius * 2);
+    divider->setPen(QPen(Qt::black, 1.5));
+    divider->setBrush(Qt::transparent);
+    divider->setZValue(1);
+    m_scene->addItem(divider);
+
+    // 3. Natal house cusps (center → dividing ring)
+    if (m_showHouseCusps) {
+        drawNatalHouseCuspsDual(dividingRadius);
+    }
+
+    // 4. Progressed house cusps (dividing ring → zodiac inner edge), dotted blue
+    drawProgressedHouseCusps(zodiacInner, dividingRadius);
+
+    // 5. Natal planets in inner zone
+    double natalBase = dividingRadius * 0.70;
+    drawPlanetsInZone(m_chartData.planets, natalBase, PLANET_SIZE, m_planetItems);
+
+    // 6. Progressed planets in outer zone
+    double progBase = dividingRadius + (zodiacInner - dividingRadius) * 0.50;
+    drawPlanetsInZone(m_progressedChartData.planets, progBase,
+                      dividingRadius + PLANET_SIZE, m_progressedPlanetItems);
+
+    // 7. Natal angles (full length)
+    drawAngles();
+
+    // 8. Progressed-to-natal aspect lines
+    if (m_showAspects) {
+        drawInterAspects();
+    }
+}
+
+void ChartRenderer::drawNatalHouseCuspsDual(double outerLimit)
+{
+    for (const HouseData &house : m_chartData.houses) {
+        QPointF outerPoint = longitudeToPoint(house.longitude, outerLimit);
+        QPointF center(0, 0);
+
+        QGraphicsLineItem *line = m_scene->addLine(QLineF(center, outerPoint));
+        line->setPen(QPen(Qt::darkGray, 1, Qt::DashLine));
+        line->setZValue(-1);
+
+        QString tip = QString("Natal House %1 cusp: %2° %3")
+                          .arg(house.id.mid(5)).arg(house.longitude, 0, 'f', 2).arg(house.sign);
+        line->setToolTip(tip);
+        line->setAcceptHoverEvents(true);
+
+        QGraphicsLineItem *hit = m_scene->addLine(QLineF(center, outerPoint));
+        hit->setPen(QPen(Qt::transparent, 20));
+        hit->setZValue(-2);
+        hit->setToolTip(tip);
+        hit->setAcceptHoverEvents(true);
+
+        m_houseCuspLines.append(line);
+    }
+}
+
+void ChartRenderer::drawProgressedHouseCusps(double outerLimit, double innerLimit)
+{
+    for (const HouseData &house : m_progressedChartData.houses) {
+        QPointF outerPoint = longitudeToPoint(house.longitude, outerLimit);
+        QPointF innerPoint = longitudeToPoint(house.longitude, innerLimit);
+
+        QGraphicsLineItem *line = m_scene->addLine(QLineF(innerPoint, outerPoint));
+        line->setPen(QPen(QColor(60, 60, 200), 1, Qt::DotLine));  // blue dotted
+        line->setZValue(-1);
+
+        line->setToolTip(QString("Prog House %1 cusp: %2° %3")
+                             .arg(house.id.mid(5)).arg(house.longitude, 0, 'f', 2).arg(house.sign));
+        line->setAcceptHoverEvents(true);
+    }
+}
+
+void ChartRenderer::drawPlanetsInZone(const QVector<PlanetData> &planets,
+                                      double baseRadius,
+                                      double minRadius,
+                                      QMap<QString, PlanetItem*> &itemMap)
+{
+    if (planets.isEmpty()) return;
+
+    double planetSize  = PLANET_SIZE;
+    double minDistance = planetSize * 1.2;
+
+    QList<PlanetData> sorted = planets;
+    std::sort(sorted.begin(), sorted.end(),
+              [](const PlanetData &a, const PlanetData &b) {
+                  return a.longitude < b.longitude;
+              });
+
+    struct PlanetPos { PlanetData planet; double radius; QPointF position; };
+    QList<PlanetPos> positions;
+
+    for (const PlanetData &p : sorted) {
+        PlanetPos pos;
+        pos.planet   = p;
+        pos.radius   = baseRadius;
+        pos.position = longitudeToPoint(p.longitude, baseRadius);
+        positions.append(pos);
+    }
+
+    // Collision resolution — push inward, clamped to minRadius
+    bool hasCollisions = true;
+    int  iterations    = 0;
+    while (hasCollisions && iterations < 50) {
+        hasCollisions = false;
+        ++iterations;
+        for (int i = 0; i < positions.size(); ++i) {
+            for (int j = i + 1; j < positions.size(); ++j) {
+                QPointF diff = positions[i].position - positions[j].position;
+                double  dist = qSqrt(diff.x() * diff.x() + diff.y() * diff.y());
+                if (dist < minDistance) {
+                    hasCollisions = true;
+                    double newR = positions[j].radius - minDistance / 2;
+                    positions[j].radius   = qMax(newR, minRadius);
+                    positions[j].position = longitudeToPoint(positions[j].planet.longitude,
+                                                             positions[j].radius);
+                }
+            }
+        }
+    }
+
+    // Draw at final positions
+    for (const PlanetPos &pos : positions) {
+        QPointF p = pos.position;
+        PlanetItem *item = new PlanetItem(toString(pos.planet.id), pos.planet.sign,
+                                          pos.planet.longitude, pos.planet.house,
+                                          pos.planet.isRetrograde);
+        item->setPos(p.x() - PLANET_SIZE / 2, p.y() - PLANET_SIZE / 2);
+        m_scene->addItem(item);
+        itemMap[toString(pos.planet.id)] = item;
+
+        // Connector line if planet was pushed away from base position
+        if (pos.radius < baseRadius - 1.0) {
+            QPointF basePoint = longitudeToPoint(pos.planet.longitude, baseRadius);
+            QGraphicsLineItem *connector = m_scene->addLine(QLineF(basePoint, pos.position));
+            connector->setPen(QPen(Qt::gray, 0.5, Qt::DotLine));
+        }
+    }
+}
+
+void ChartRenderer::drawInterAspects()
+{
+    bool showLines = AspectSettings::instance().getShowAspectLines();
+    if (!showLines) return;
+
+    // Update natal planet tooltips with interaspect information
+    for (const AspectData &aspect : m_interAspects) {
+        QString progKey  = toString(aspect.planet1);
+        QString natalKey = toString(aspect.planet2);
+
+        if (m_planetItems.contains(natalKey)) {
+            m_planetItems[natalKey]->addAspect(
+                progKey + " (P)", toString(aspect.aspectType), aspect.orb);
+        }
+        if (m_progressedPlanetItems.contains(progKey)) {
+            m_progressedPlanetItems[progKey]->addAspect(
+                natalKey + " (N)", toString(aspect.aspectType), aspect.orb);
+        }
+    }
+
+    // Draw aspect lines between progressed and natal planets
+    for (const AspectData &aspect : m_interAspects) {
+        PlanetItem *progItem  = m_progressedPlanetItems.value(toString(aspect.planet1));
+        PlanetItem *natalItem = m_planetItems.value(toString(aspect.planet2));
+        if (!progItem || !natalItem) continue;
+
+        QPointF p1 = progItem->pos()  + QPointF(PLANET_SIZE / 2, PLANET_SIZE / 2);
+        QPointF p2 = natalItem->pos() + QPointF(PLANET_SIZE / 2, PLANET_SIZE / 2);
+        QLineF  line(p1, p2);
+        double  angle  = line.angle() * M_PI / 180.0;
+        double  r      = PLANET_SIZE / 2.0;
+
+        QPointF ep1(p1.x() + r * cos(angle), p1.y() - r * sin(angle));
+        QPointF ep2(p2.x() - r * cos(angle), p2.y() + r * sin(angle));
+
+        AspectItem *aLine = new AspectItem(toString(aspect.planet1), toString(aspect.planet2),
+                                           toString(aspect.aspectType), aspect.orb);
+        aLine->setLine(QLineF(ep1, ep2));
+
+        QPen pen(aspectColor(aspect.aspectType));
+        pen.setStyle(isMajorAspect(aspect.aspectType)
+                         ? AspectSettings::instance().getMajorAspectStyle()
+                         : AspectSettings::instance().getMinorAspectStyle());
+        pen.setWidthF(isMajorAspect(aspect.aspectType)
+                          ? AspectSettings::instance().getMajorAspectWidth()
+                          : AspectSettings::instance().getMinorAspectWidth());
+        aLine->setPen(pen);
+        aLine->setZValue(-5);
+        aLine->setAcceptHoverEvents(false);
+
+        m_scene->addItem(aLine);
+        m_aspectItems.append(aLine);
+    }
 }
 

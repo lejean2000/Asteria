@@ -17,6 +17,14 @@ ChartDataManager::~ChartDataManager()
 
 
 
+QVector<AspectData> ChartDataManager::calculateInteraspects(
+    const ChartData &progressed,
+    const ChartData &natal,
+    double orbMax)
+{
+    return m_calculator->calculateInteraspects(progressed.planets, natal.planets, orbMax);
+}
+
 bool ChartDataManager::isCalculatorAvailable() const
 {
     return m_calculator->isAvailable();

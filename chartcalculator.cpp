@@ -309,6 +309,49 @@ QVector<AspectData> ChartCalculator::calculateAspects(const QVector<PlanetData> 
 
 
 
+QVector<AspectData> ChartCalculator::calculateInteraspects(
+    const QVector<PlanetData> &outerPlanets,
+    const QVector<PlanetData> &innerPlanets,
+    double orbMax) const
+{
+    QVector<AspectData> aspects;
+
+    struct AspectRule { AspectType type; double angle; double orb; };
+    orbMax = getOrbMax();
+    const AspectRule aspectRules[] = {
+        {AspectType::Conjunction,    0.0,   orbMax},
+        {AspectType::Opposition,     180.0, orbMax},
+        {AspectType::Trine,          120.0, orbMax},
+        {AspectType::Square,         90.0,  orbMax},
+        {AspectType::Sextile,        60.0,  orbMax},
+        {AspectType::Quincunx,       150.0, orbMax * 0.75},
+        {AspectType::Semisquare,     45.0,  orbMax * 0.75},
+        {AspectType::Sesquiquadrate, 135.0, orbMax * 0.75},
+        {AspectType::Semisextile,    30.0,  orbMax * 0.75}
+    };
+
+    // All outer×inner pairs (not skipping i≥j — every combo is distinct)
+    for (const PlanetData &p1 : outerPlanets) {
+        for (const PlanetData &p2 : innerPlanets) {
+            double diff = fabs(p1.longitude - p2.longitude);
+            if (diff > 180.0) diff = 360.0 - diff;
+            for (const AspectRule &rule : aspectRules) {
+                double orb = fabs(diff - rule.angle);
+                if (orb <= rule.orb) {
+                    AspectData aspect;
+                    aspect.planet1    = p1.id;   // progressed planet
+                    aspect.planet2    = p2.id;   // natal planet
+                    aspect.aspectType = rule.type;
+                    aspect.orb        = orb;
+                    aspects.append(aspect);
+                    break; // one aspect per pair (closest match)
+                }
+            }
+        }
+    }
+    return aspects;
+}
+
 ChartData ChartCalculator::calculateChart(const QDate &birthDate,
                                           const QTime &birthTime,
                                           const QString &utcOffset,

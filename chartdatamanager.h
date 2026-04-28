@@ -43,6 +43,11 @@ public:
     // Convert ChartData to JSON
     QJsonObject chartDataToJson(const ChartData &data);
 
+    // Calculate aspects between two charts (bi-wheel interaspects)
+    QVector<AspectData> calculateInteraspects(const ChartData &progressed,
+                                              const ChartData &natal,
+                                              double orbMax = 8.0);
+
     // Get the last error message
     QString getLastError() const;
 

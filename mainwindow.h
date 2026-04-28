@@ -160,6 +160,8 @@ private slots:
 private:
     // Helper method to convert QJsonObject to ChartData
     ChartData convertJsonToChartData(const QJsonObject &jsonData);
+    // Filter additional bodies based on the checkbox setting
+    ChartData filterAdditionalBodies(const ChartData &data) const;
     // Existing members...
     PlanetListWidget *m_planetListWidget;
     AspectarianWidget *m_aspectarianWidget;

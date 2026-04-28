@@ -1,9 +1,10 @@
 #include "elementmodalitywidget.h"
 #include <QFont>
 #include <QFrame>
+#include <QVBoxLayout>
+#include <QTabBar>
 
 extern QString g_astroFontFamily;
-
 
 ElementModalityWidget::ElementModalityWidget(QWidget *parent)
     : QWidget(parent)
@@ -11,11 +12,124 @@ ElementModalityWidget::ElementModalityWidget(QWidget *parent)
     setupUi();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Build one grid panel (natal or progressed) and populate output label pointers
+// ─────────────────────────────────────────────────────────────────────────────
+QWidget* ElementModalityWidget::buildGridPanel(
+    QGridLayout *&gridLayout,
+    QMap<QString, QLabel*> &signLabels,
+    QLabel *&fireT,  QLabel *&earthT,
+    QLabel *&airT,   QLabel *&waterT,
+    QLabel *&cardT,  QLabel *&fixedT,
+    QLabel *&mutT,   QLabel *&grandT)
+{
+    QWidget *panel = new QWidget(this);
+    gridLayout = new QGridLayout(panel);
+    gridLayout->setSpacing(2);
+
+    // Header labels
+    QLabel *headerElement  = new QLabel("",        panel);
+    QLabel *headerFire     = new QLabel("Fire",    panel);
+    QLabel *headerEarth    = new QLabel("Earth",   panel);
+    QLabel *headerAir      = new QLabel("Air",     panel);
+    QLabel *headerWater    = new QLabel("Water",   panel);
+    QLabel *headerTotal    = new QLabel("Total",   panel);
+    QLabel *headerCardinal = new QLabel("Cardinal",panel);
+    QLabel *headerFixed    = new QLabel("Fixed",   panel);
+    QLabel *headerMutable  = new QLabel("Mutable", panel);
+
+    QFont headerFont;
+    headerFont.setBold(true);
+    for (QLabel *l : {headerElement, headerFire, headerEarth, headerAir,
+                      headerWater,   headerTotal, headerCardinal,
+                      headerFixed,   headerMutable}) {
+        l->setFont(headerFont);
+    }
+    headerFire ->setStyleSheet("background-color: rgba(255, 100, 100, 100);");
+    headerEarth->setStyleSheet("background-color: rgba(255, 255, 100, 100);");
+    headerAir  ->setStyleSheet("background-color: rgba(100, 200, 100, 100);");
+    headerWater->setStyleSheet("background-color: rgba(100, 100, 255, 100);");
+
+    gridLayout->addWidget(headerElement,  0, 0);
+    gridLayout->addWidget(headerFire,     0, 1);
+    gridLayout->addWidget(headerEarth,    0, 2);
+    gridLayout->addWidget(headerAir,      0, 3);
+    gridLayout->addWidget(headerWater,    0, 4);
+    gridLayout->addWidget(headerTotal,    0, 5);
+    gridLayout->addWidget(headerCardinal, 1, 0);
+    gridLayout->addWidget(headerFixed,    2, 0);
+    gridLayout->addWidget(headerMutable,  3, 0);
+
+    panel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    gridLayout->setContentsMargins(0, 0, 0, 0);
+    for (int c = 1; c <= 5; ++c) gridLayout->setColumnStretch(c, 1);
+    for (int r = 1; r <= 3; ++r) gridLayout->setRowStretch(r, 1);
+    gridLayout->setRowStretch(4, 0);
+
+    // Sign cells
+    QStringList signs = {
+        "Aries", "Taurus", "Gemini", "Cancer",
+        "Leo", "Virgo", "Libra", "Scorpio",
+        "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+    };
+    QMap<QString, QPair<int,int>> signPositions = {
+        {"Aries",{1,1}},{"Taurus",{2,2}},{"Gemini",{3,3}},{"Cancer",{1,4}},
+        {"Leo",{2,1}},{"Virgo",{3,2}},{"Libra",{1,3}},{"Scorpio",{2,4}},
+        {"Sagittarius",{3,1}},{"Capricorn",{1,2}},{"Aquarius",{2,3}},{"Pisces",{3,4}}
+    };
+
+    for (const QString &sign : signs) {
+        QLabel *label = new QLabel(getSignGlyph(sign), panel);
+        label->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
+        label->setFrameShape(QFrame::Box);
+        label->setMinimumSize(1, 1);
+        label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        label->setWordWrap(false);
+        QFont gf("DejaVu Sans", 14);
+        gf.setStyleStrategy(QFont::NoFontMerging);
+        label->setFont(gf);
+        QString element = getElement(sign);
+        QColor color = getElementColor(element);
+        label->setStyleSheet(QString("background-color: rgba(%1, %2, %3, 50);")
+                                 .arg(color.red()).arg(color.green()).arg(color.blue()));
+        QPair<int,int> pos = signPositions[sign];
+        gridLayout->addWidget(label, pos.first, pos.second);
+        signLabels[sign] = label;
+    }
+
+    // Total labels
+    auto makeTotalLabel = [&](const QString &text) {
+        QLabel *l = new QLabel(text, panel);
+        QFont tf = l->font(); tf.setBold(true); l->setFont(tf);
+        l->setAlignment(Qt::AlignCenter);
+        return l;
+    };
+    fireT  = makeTotalLabel("0"); earthT = makeTotalLabel("0");
+    airT   = makeTotalLabel("0"); waterT = makeTotalLabel("0");
+    cardT  = makeTotalLabel("0"); fixedT = makeTotalLabel("0");
+    mutT   = makeTotalLabel("0");
+
+    gridLayout->addWidget(fireT,  4, 1);
+    gridLayout->addWidget(earthT, 4, 2);
+    gridLayout->addWidget(airT,   4, 3);
+    gridLayout->addWidget(waterT, 4, 4);
+    gridLayout->addWidget(cardT,  1, 5);
+    gridLayout->addWidget(fixedT, 2, 5);
+    gridLayout->addWidget(mutT,   3, 5);
+
+    QLabel *grandLabel = new QLabel("Total", panel);
+    grandLabel->setFont(headerFont);
+    grandT = makeTotalLabel("0");
+    gridLayout->addWidget(grandLabel, 4, 0);
+    gridLayout->addWidget(grandT,     4, 5);
+
+    return panel;
+}
+
 void ElementModalityWidget::setupUi()
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
-    // Title label
     m_titleLabel = new QLabel("Elements & Modalities", this);
     QFont titleFont = m_titleLabel->font();
     titleFont.setBold(true);
@@ -23,360 +137,198 @@ void ElementModalityWidget::setupUi()
     m_titleLabel->setFont(titleFont);
     m_titleLabel->setAlignment(Qt::AlignCenter);
 
-    // Create grid layout for the element/modality table
-    QWidget *gridWidget = new QWidget(this);
-    m_gridLayout = new QGridLayout(gridWidget);
-    m_gridLayout->setSpacing(2);
+    QWidget *natalPanel = buildGridPanel(
+        m_natalGridLayout, m_natalSignLabels,
+        m_natalFireTotal,  m_natalEarthTotal,
+        m_natalAirTotal,   m_natalWaterTotal,
+        m_natalCardinalTotal, m_natalFixedTotal,
+        m_natalMutableTotal,  m_natalGrandTotal);
 
-    // Create header labels
-    QLabel *headerElement = new QLabel("", this);
-    QLabel *headerFire = new QLabel("Fire", this);
-    QLabel *headerEarth = new QLabel("Earth", this);
-    QLabel *headerAir = new QLabel("Air", this);
-    QLabel *headerWater = new QLabel("Water", this);
-    QLabel *headerTotal = new QLabel("Total", this);
+    QWidget *progPanel = buildGridPanel(
+        m_progGridLayout, m_progSignLabels,
+        m_progFireTotal,  m_progEarthTotal,
+        m_progAirTotal,   m_progWaterTotal,
+        m_progCardinalTotal, m_progFixedTotal,
+        m_progMutableTotal,  m_progGrandTotal);
 
-    QLabel *headerCardinal = new QLabel("Cardinal", this);
-    QLabel *headerFixed = new QLabel("Fixed", this);
-    QLabel *headerMutable = new QLabel("Mutable", this);
+    m_tabWidget = new QTabWidget(this);
+    m_tabWidget->addTab(natalPanel, "Natal");
+    m_tabWidget->addTab(progPanel,  "Progressed");
+    m_tabWidget->tabBar()->setVisible(false);
+    m_tabWidget->setTabVisible(1, false);
 
-    // Set header styles
-    QFont headerFont;
-    headerFont.setBold(true);
-    headerElement->setFont(headerFont);
-    headerFire->setFont(headerFont);
-    headerEarth->setFont(headerFont);
-    headerAir->setFont(headerFont);
-    headerWater->setFont(headerFont);
-    headerTotal->setFont(headerFont);
-    headerCardinal->setFont(headerFont);
-    headerFixed->setFont(headerFont);
-    headerMutable->setFont(headerFont);
-
-    // Set header colors
-    headerFire->setStyleSheet("background-color: rgba(255, 100, 100, 100);");
-    headerEarth->setStyleSheet("background-color: rgba(255, 255, 100, 100);"); // Yellow for Earth
-    headerAir->setStyleSheet("background-color: rgba(100, 200, 100, 100);");   // Green for Air
-    headerWater->setStyleSheet("background-color: rgba(100, 100, 255, 100);");
-    // Add headers to grid
-    m_gridLayout->addWidget(headerElement, 0, 0);
-    m_gridLayout->addWidget(headerFire, 0, 1);
-    m_gridLayout->addWidget(headerEarth, 0, 2);
-    m_gridLayout->addWidget(headerAir, 0, 3);
-    m_gridLayout->addWidget(headerWater, 0, 4);
-    m_gridLayout->addWidget(headerTotal, 0, 5);
-
-    m_gridLayout->addWidget(headerCardinal, 1, 0);
-    m_gridLayout->addWidget(headerFixed, 2, 0);
-    m_gridLayout->addWidget(headerMutable, 3, 0);
-
-    // Make grid responsive to parent/splitter resizing
-    gridWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    m_gridLayout->setContentsMargins(0, 0, 0, 0);
-    m_gridLayout->setColumnStretch(1, 1);
-    m_gridLayout->setColumnStretch(2, 1);
-    m_gridLayout->setColumnStretch(3, 1);
-    m_gridLayout->setColumnStretch(4, 1);
-    m_gridLayout->setColumnStretch(5, 1);
-    m_gridLayout->setRowStretch(1, 1);
-    m_gridLayout->setRowStretch(2, 1);
-    m_gridLayout->setRowStretch(3, 1);
-    m_gridLayout->setRowStretch(4, 0); // totals row minimal stretch
-
-    // Create cells for each sign
-    QStringList signs = {
-        "Aries", "Taurus", "Gemini", "Cancer",
-        "Leo", "Virgo", "Libra", "Scorpio",
-        "Sagittarius", "Capricorn", "Aquarius", "Pisces"
-    };
-
-    // Map signs to their positions in the grid
-    QMap<QString, QPair<int, int>> signPositions = {
-        {"Aries", {1, 1}},       // Cardinal Fire
-        {"Taurus", {2, 2}},      // Fixed Earth
-        {"Gemini", {3, 3}},      // Mutable Air
-        {"Cancer", {1, 4}},      // Cardinal Water
-        {"Leo", {2, 1}},         // Fixed Fire
-        {"Virgo", {3, 2}},       // Mutable Earth
-        {"Libra", {1, 3}},       // Cardinal Air
-        {"Scorpio", {2, 4}},     // Fixed Water
-        {"Sagittarius", {3, 1}}, // Mutable Fire
-        {"Capricorn", {1, 2}},   // Cardinal Earth
-        {"Aquarius", {2, 3}},    // Fixed Air
-        {"Pisces", {3, 4}}       // Mutable Water
-    };
-
-    // Create labels for each sign
-    for (const QString &sign : signs) {
-
-        // Create label for the sign
-        QString glyph = getSignGlyph(sign);
-        QLabel *label = new QLabel(glyph, this);
-        //label->setAlignment(Qt::AlignCenter);
-        label->setAlignment(Qt::AlignTop | Qt::AlignHCenter);
-
-
-        label->setFrameShape(QFrame::Box);
-        label->setMinimumSize(1, 1);
-        label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        label->setWordWrap(false);
-
-        // Use a font that supports Unicode symbols
-        //QFont glyphFont = label->font();
-        //glyphFont.setPointSize(16); // Larger font for the glyph
-
-        QFont glyphFont("DejaVu Sans", 14);      // use a known system font
-        glyphFont.setStyleStrategy(QFont::NoFontMerging); // block emoji/color fallback
-        label->setFont(glyphFont);
-
-        // Set background color based on element
-        QString element = getElement(sign);
-        QColor color = getElementColor(element);
-        label->setStyleSheet(QString("background-color: rgba(%1, %2, %3, 50);")
-                                 .arg(color.red()).arg(color.green()).arg(color.blue()));
-
-        // Add to grid at the correct position
-        QPair<int, int> pos = signPositions[sign];
-        m_gridLayout->addWidget(label, pos.first, pos.second);
-
-        // Store for later updates
-        m_signLabels[sign] = label;
-
-    }
-
-    // Create total labels
-    m_fireTotal = new QLabel("0", this);
-    m_earthTotal = new QLabel("0", this);
-    m_airTotal = new QLabel("0", this);
-    m_waterTotal = new QLabel("0", this);
-    m_cardinalTotal = new QLabel("0", this);
-    m_fixedTotal = new QLabel("0", this);
-    m_mutableTotal = new QLabel("0", this);
-
-    // Set total label styles
-    QFont totalFont = m_fireTotal->font();
-    totalFont.setBold(true);
-    m_fireTotal->setFont(totalFont);
-    m_earthTotal->setFont(totalFont);
-    m_airTotal->setFont(totalFont);
-    m_waterTotal->setFont(totalFont);
-    m_cardinalTotal->setFont(totalFont);
-    m_fixedTotal->setFont(totalFont);
-    m_mutableTotal->setFont(totalFont);
-
-    m_fireTotal->setAlignment(Qt::AlignCenter);
-    m_earthTotal->setAlignment(Qt::AlignCenter);
-    m_airTotal->setAlignment(Qt::AlignCenter);
-    m_waterTotal->setAlignment(Qt::AlignCenter);
-    m_cardinalTotal->setAlignment(Qt::AlignCenter);
-    m_fixedTotal->setAlignment(Qt::AlignCenter);
-    m_mutableTotal->setAlignment(Qt::AlignCenter);
-
-    // Add total labels to grid
-    m_gridLayout->addWidget(m_fireTotal, 4, 1);
-    m_gridLayout->addWidget(m_earthTotal, 4, 2);
-    m_gridLayout->addWidget(m_airTotal, 4, 3);
-    m_gridLayout->addWidget(m_waterTotal, 4, 4);
-
-    m_gridLayout->addWidget(m_cardinalTotal, 1, 5);
-    m_gridLayout->addWidget(m_fixedTotal, 2, 5);
-    m_gridLayout->addWidget(m_mutableTotal, 3, 5);
-
-    // Add a grand total label
-    QLabel *grandTotalLabel = new QLabel("Total", this);
-    QLabel *grandTotal = new QLabel("0", this);
-    grandTotalLabel->setFont(headerFont);
-    grandTotal->setFont(totalFont);
-    grandTotal->setAlignment(Qt::AlignCenter);
-
-    m_gridLayout->addWidget(grandTotalLabel, 4, 0);
-    m_gridLayout->addWidget(grandTotal, 4, 5);
-
-    // Add the grid to the main layout
     mainLayout->addWidget(m_titleLabel);
-    mainLayout->addWidget(gridWidget);
+    mainLayout->addWidget(m_tabWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0);
-
     setLayout(mainLayout);
 }
 
-
-void ElementModalityWidget::updateData(const ChartData &chartData) {
-
-    // Reset all counts and planet lists
-    QMap<QString, QStringList> signPlanets;
-    QMap<QString, int> elementCounts;
-    QMap<QString, int> modalityCounts;
-
-    // Initialize counts to zero and planet lists to empty
+// ─────────────────────────────────────────────────────────────────────────────
+// Fill one grid with chart data
+// ─────────────────────────────────────────────────────────────────────────────
+void ElementModalityWidget::fillGrid(
+    QGridLayout */*gridLayout*/,
+    QMap<QString, QLabel*> &signLabels,
+    QLabel *fireT,  QLabel *earthT,
+    QLabel *airT,   QLabel *waterT,
+    QLabel *cardT,  QLabel *fixedT,
+    QLabel *mutT,   QLabel *grandT,
+    const ChartData &chartData)
+{
     QStringList signs = {
         "Aries", "Taurus", "Gemini", "Cancer",
         "Leo", "Virgo", "Libra", "Scorpio",
         "Sagittarius", "Capricorn", "Aquarius", "Pisces"
     };
 
-    for (const QString &sign : signs) {
-        signPlanets[sign] = QStringList();
-    }
+    QMap<QString, QStringList> signPlanets;
+    for (const QString &sign : signs) signPlanets[sign] = {};
 
-    elementCounts["Fire"] = 0;
-    elementCounts["Earth"] = 0;
-    elementCounts["Air"] = 0;
-    elementCounts["Water"] = 0;
-    modalityCounts["Cardinal"] = 0;
-    modalityCounts["Fixed"] = 0;
-    modalityCounts["Mutable"] = 0;
+    QMap<QString,int> elementCounts  = {{"Fire",0},{"Earth",0},{"Air",0},{"Water",0}};
+    QMap<QString,int> modalityCounts = {{"Cardinal",0},{"Fixed",0},{"Mutable",0}};
 
-    // Collect planets in each sign
     for (const PlanetData &planet : chartData.planets) {
         QString signName = planet.sign.split(' ').first();
-
         if (signPlanets.contains(signName)) {
             signPlanets[signName].append(toString(planet.id));
-
-            // Update element and modality counts
-            QString element = getElement(signName);
-            QString modality = getModality(signName);
-            elementCounts[element]++;
-            modalityCounts[modality]++;
+            elementCounts[getElement(signName)]++;
+            modalityCounts[getModality(signName)]++;
         }
     }
-
-    // Update the sign labels with planet glyphs
 
     for (const QString &sign : signs) {
-        if (m_signLabels.contains(sign)) {
-            QString signGlyph = getSignGlyph(sign);
-            QString planetGlyphs = "";
+        if (!signLabels.contains(sign)) continue;
+        QString signGlyph   = getSignGlyph(sign);
+        QString planetGlyphs;
+        for (const QString &pid : signPlanets[sign])
+            planetGlyphs += getPlanetGlyph(pid) + " ";
+        QString labelText = signGlyph + "\n" + planetGlyphs.trimmed();
+        signLabels[sign]->setText(labelText);
 
-            // Convert planet names to glyphs and join them
-            for (const QString &planetId : signPlanets[sign]) {
-                planetGlyphs += getPlanetGlyph(planetId) + " ";
-            }
-
-            // Create a simple text label with sign glyph and planet glyphs
-            QString labelText = signGlyph + "\n" + planetGlyphs.trimmed();
-
-            // Set the label text without HTML formatting
-            m_signLabels[sign]->setText(labelText);
-
-            // Apply the Astromoony font to the label
-            if (!g_astroFontFamily.isEmpty()) {
-                //QFont astroFont(g_astroFontFamily, 16);
-                QFont astroFont("DejaVu Sans", 14);      // use a known system font
-                astroFont.setStyleStrategy(QFont::NoFontMerging); // block emoji/color fallback <<<<<<----
-
-                astroFont.setBold(true);
-                m_signLabels[sign]->setFont(astroFont);
-            }
+        if (!g_astroFontFamily.isEmpty()) {
+            QFont af("DejaVu Sans", 14);
+            af.setStyleStrategy(QFont::NoFontMerging);
+            af.setBold(true);
+            signLabels[sign]->setFont(af);
         }
     }
 
-
-
-    // Update the total labels
-    m_fireTotal->setText(QString::number(elementCounts["Fire"]));
-    m_earthTotal->setText(QString::number(elementCounts["Earth"]));
-    m_airTotal->setText(QString::number(elementCounts["Air"]));
-    m_waterTotal->setText(QString::number(elementCounts["Water"]));
-    m_cardinalTotal->setText(QString::number(modalityCounts["Cardinal"]));
-    m_fixedTotal->setText(QString::number(modalityCounts["Fixed"]));
-    m_mutableTotal->setText(QString::number(modalityCounts["Mutable"]));
-
-    // Update grand total
-    int grandTotal = elementCounts["Fire"] + elementCounts["Earth"] +
-                     elementCounts["Air"] + elementCounts["Water"];
-
-    // Find the grand total label and update it
-    QLayoutItem *item = m_gridLayout->itemAtPosition(4, 5);
-    if (item && item->widget()) {
-        QLabel *grandTotalLabel = qobject_cast<QLabel*>(item->widget());
-        if (grandTotalLabel) {
-            grandTotalLabel->setText(QString::number(grandTotal));
-        }
-    }
+    fireT ->setText(QString::number(elementCounts["Fire"]));
+    earthT->setText(QString::number(elementCounts["Earth"]));
+    airT  ->setText(QString::number(elementCounts["Air"]));
+    waterT->setText(QString::number(elementCounts["Water"]));
+    cardT ->setText(QString::number(modalityCounts["Cardinal"]));
+    fixedT->setText(QString::number(modalityCounts["Fixed"]));
+    mutT  ->setText(QString::number(modalityCounts["Mutable"]));
+    grandT->setText(QString::number(
+        elementCounts["Fire"] + elementCounts["Earth"] +
+        elementCounts["Air"]  + elementCounts["Water"]));
 }
 
+void ElementModalityWidget::updateData(const ChartData &chartData)
+{
+    // Single-chart mode: show only natal tab, hide tab bar
+    m_tabWidget->tabBar()->setVisible(false);
+    m_tabWidget->setTabVisible(1, false);
+    m_tabWidget->setCurrentIndex(0);
+
+    fillGrid(m_natalGridLayout, m_natalSignLabels,
+             m_natalFireTotal,  m_natalEarthTotal,
+             m_natalAirTotal,   m_natalWaterTotal,
+             m_natalCardinalTotal, m_natalFixedTotal,
+             m_natalMutableTotal,  m_natalGrandTotal,
+             chartData);
+}
+
+void ElementModalityWidget::updateDualData(const ChartData &natal, const ChartData &progressed)
+{
+    m_tabWidget->setTabVisible(1, true);
+    m_tabWidget->tabBar()->setVisible(true);
+    m_tabWidget->setCurrentIndex(0);  // default: Natal
+
+    fillGrid(m_natalGridLayout, m_natalSignLabels,
+             m_natalFireTotal,  m_natalEarthTotal,
+             m_natalAirTotal,   m_natalWaterTotal,
+             m_natalCardinalTotal, m_natalFixedTotal,
+             m_natalMutableTotal,  m_natalGrandTotal,
+             natal);
+
+    fillGrid(m_progGridLayout, m_progSignLabels,
+             m_progFireTotal,  m_progEarthTotal,
+             m_progAirTotal,   m_progWaterTotal,
+             m_progCardinalTotal, m_progFixedTotal,
+             m_progMutableTotal,  m_progGrandTotal,
+             progressed);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper lookups (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
 QString ElementModalityWidget::getElement(const QString &sign)
 {
-    if (sign == "Aries" || sign == "Leo" || sign == "Sagittarius") {
-        return "Fire";
-    } else if (sign == "Taurus" || sign == "Virgo" || sign == "Capricorn") {
-        return "Earth";
-    } else if (sign == "Gemini" || sign == "Libra" || sign == "Aquarius") {
-        return "Air";
-    } else if (sign == "Cancer" || sign == "Scorpio" || sign == "Pisces") {
-        return "Water";
-    }
+    if (sign == "Aries" || sign == "Leo" || sign == "Sagittarius") return "Fire";
+    if (sign == "Taurus" || sign == "Virgo" || sign == "Capricorn") return "Earth";
+    if (sign == "Gemini" || sign == "Libra" || sign == "Aquarius") return "Air";
+    if (sign == "Cancer" || sign == "Scorpio" || sign == "Pisces") return "Water";
     return "";
 }
 
 QString ElementModalityWidget::getModality(const QString &sign)
 {
-    if (sign == "Aries" || sign == "Cancer" || sign == "Libra" || sign == "Capricorn") {
-        return "Cardinal";
-    } else if (sign == "Taurus" || sign == "Leo" || sign == "Scorpio" || sign == "Aquarius") {
-        return "Fixed";
-    } else if (sign == "Gemini" || sign == "Virgo" || sign == "Sagittarius" || sign == "Pisces") {
-        return "Mutable";
-    }
+    if (sign == "Aries" || sign == "Cancer" || sign == "Libra" || sign == "Capricorn") return "Cardinal";
+    if (sign == "Taurus" || sign == "Leo" || sign == "Scorpio" || sign == "Aquarius") return "Fixed";
+    if (sign == "Gemini" || sign == "Virgo" || sign == "Sagittarius" || sign == "Pisces") return "Mutable";
     return "";
 }
+
 QColor ElementModalityWidget::getElementColor(const QString &element)
 {
-    if (element == "Fire") {
-        return QColor(255, 100, 100);  // Red
-    } else if (element == "Earth") {
-        return QColor(255, 255, 100);  // Yellow for Earth
-    } else if (element == "Air") {
-        return QColor(100, 200, 100);  // Green for Air
-    } else if (element == "Water") {
-        return QColor(100, 100, 255);  // Blue
-    }
-    return QColor(200, 200, 200);  // Gray default
+    if (element == "Fire")  return QColor(255, 100, 100);
+    if (element == "Earth") return QColor(255, 255, 100);
+    if (element == "Air")   return QColor(100, 200, 100);
+    if (element == "Water") return QColor(100, 100, 255);
+    return QColor(200, 200, 200);
 }
 
 QString ElementModalityWidget::getSignGlyph(const QString &sign) {
-    if (sign == "Aries") return "♈";
-    if (sign == "Taurus") return "♉";
-    if (sign == "Gemini") return "♊";
-    if (sign == "Cancer") return "♋";
-    if (sign == "Leo") return "♌";
-    if (sign == "Virgo") return "♍";
-    if (sign == "Libra") return "♎";
-    if (sign == "Scorpio") return "♏";
+    if (sign == "Aries")       return "♈";
+    if (sign == "Taurus")      return "♉";
+    if (sign == "Gemini")      return "♊";
+    if (sign == "Cancer")      return "♋";
+    if (sign == "Leo")         return "♌";
+    if (sign == "Virgo")       return "♍";
+    if (sign == "Libra")       return "♎";
+    if (sign == "Scorpio")     return "♏";
     if (sign == "Sagittarius") return "♐";
-    if (sign == "Capricorn") return "♑";
-    if (sign == "Aquarius") return "♒";
-    if (sign == "Pisces") return "♓";
+    if (sign == "Capricorn")   return "♑";
+    if (sign == "Aquarius")    return "♒";
+    if (sign == "Pisces")      return "♓";
     return sign;
 }
 
 QString ElementModalityWidget::getPlanetGlyph(const QString &planetId) {
-    if (planetId == "Sun") return "☉";
-    if (planetId == "Moon") return "☽";
-    if (planetId == "Mercury") return "☿";
-    if (planetId == "Venus") return "♀";
-    if (planetId == "Mars") return "♂";
-    if (planetId == "Jupiter") return "♃";
-    if (planetId == "Saturn") return "♄";
-    if (planetId == "Uranus") return "♅";
-    if (planetId == "Neptune") return "♆";
-    if (planetId == "Pluto") return "♇";
-    if (planetId == "Chiron") return "⚷";
-    if (planetId == "North Node") return "☊";
-    if (planetId == "South Node") return "☋";
+    if (planetId == "Sun")          return "☉";
+    if (planetId == "Moon")         return "☽";
+    if (planetId == "Mercury")      return "☿";
+    if (planetId == "Venus")        return "♀";
+    if (planetId == "Mars")         return "♂";
+    if (planetId == "Jupiter")      return "♃";
+    if (planetId == "Saturn")       return "♄";
+    if (planetId == "Uranus")       return "♅";
+    if (planetId == "Neptune")      return "♆";
+    if (planetId == "Pluto")        return "♇";
+    if (planetId == "Chiron")       return "⚷";
+    if (planetId == "North Node")   return "☊";
+    if (planetId == "South Node")   return "☋";
     if (planetId == "Pars Fortuna") return "⊗";
-    if (planetId == "Syzygy") return "☍";
-    // Additional bodies
-    if (planetId == "Lilith") return "⚸";
-    if (planetId == "Ceres") return "⚳";
-    if (planetId == "Pallas") return "⚴";
-    if (planetId == "Juno") return "⚵";
-    if (planetId == "Vesta") return "⚶";
-    if (planetId == "Vertex") return "⊗";
-    if (planetId == "East Point") return "⊙";
+    if (planetId == "Syzygy")       return "☍";
+    if (planetId == "Lilith")       return "⚸";
+    if (planetId == "Ceres")        return "⚳";
+    if (planetId == "Pallas")       return "⚴";
+    if (planetId == "Juno")         return "⚵";
+    if (planetId == "Vesta")        return "⚶";
+    if (planetId == "Vertex")       return "⊗";
+    if (planetId == "East Point")   return "⊙";
     if (planetId == "Part of Spirit") return "⊖";
-    // Return first letter for any other planet
     return planetId.left(1);
 }

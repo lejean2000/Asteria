@@ -1,6 +1,8 @@
 #include "planetlistwidget.h"
 #include <QHeaderView>
 #include <QFont>
+#include <QTabWidget>
+#include <QTabBar>
 
 extern QString g_astroFontFamily;
 
@@ -11,11 +13,30 @@ PlanetListWidget::PlanetListWidget(QWidget *parent)
     setupUi();
 }
 
+static QTableWidget* makePlanetTable(QWidget *parent)
+{
+    QTableWidget *t = new QTableWidget(parent);
+    t->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    t->setSelectionMode(QAbstractItemView::SingleSelection);
+    t->setSelectionBehavior(QAbstractItemView::SelectRows);
+    t->setShowGrid(true);
+    t->setAlternatingRowColors(true);
+    t->verticalHeader()->setVisible(false);
+    t->setSizeAdjustPolicy(QAbstractScrollArea::AdjustIgnored);
+    t->setWordWrap(false);
+    t->horizontalHeader()->setMinimumSectionSize(1);
+    t->verticalHeader()->setMinimumSectionSize(1);
+    t->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    t->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    t->setColumnCount(5);
+    t->setHorizontalHeaderLabels({"Planet", "Sign", "Degree", "Minute", "House"});
+    return t;
+}
+
 void PlanetListWidget::setupUi()
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
 
-    // Title label
     m_titleLabel = new QLabel("Planets", this);
     QFont titleFont = m_titleLabel->font();
     titleFont.setBold(true);
@@ -23,39 +44,46 @@ void PlanetListWidget::setupUi()
     m_titleLabel->setFont(titleFont);
     m_titleLabel->setAlignment(Qt::AlignCenter);
 
-    // Create table
-    m_table = new QTableWidget(this);
-    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_table->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_table->setShowGrid(true);
-    m_table->setAlternatingRowColors(true);
-    m_table->verticalHeader()->setVisible(false);
-    m_table->setSizeAdjustPolicy(QAbstractScrollArea::AdjustIgnored);
-    m_table->setWordWrap(false);
-    m_table->horizontalHeader()->setMinimumSectionSize(1);
-    m_table->verticalHeader()->setMinimumSectionSize(1);
-    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_table->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_natalTable      = makePlanetTable(this);
+    m_progressedTable = makePlanetTable(this);
 
-    // Set up columns
-    m_table->setColumnCount(5);
-    QStringList headers;
-    headers << "Planet" << "Sign" << "Degree" << "Minute" << "House";
-    m_table->setHorizontalHeaderLabels(headers);
+    m_tabWidget = new QTabWidget(this);
+    m_tabWidget->addTab(m_natalTable,      "Natal");
+    m_tabWidget->addTab(m_progressedTable, "Progressed");
+    m_tabWidget->tabBar()->setVisible(false);  // hidden in single-chart mode
+    m_tabWidget->setTabVisible(1, false);
 
-    // Add widgets to layout
     layout->addWidget(m_titleLabel);
-    layout->addWidget(m_table);
+    layout->addWidget(m_tabWidget);
     layout->setContentsMargins(0, 0, 0, 0);
-
     setLayout(layout);
 }
 
 void PlanetListWidget::updateData(const ChartData &chartData)
 {
+    // Revert to single-chart mode
+    m_tabWidget->tabBar()->setVisible(false);
+    m_tabWidget->setTabVisible(1, false);
+    m_tabWidget->setCurrentIndex(0);
+    m_progressedTable->setRowCount(0);
+
+    populateTable(m_natalTable, chartData);
+}
+
+void PlanetListWidget::updateDualData(const ChartData &natal, const ChartData &progressed)
+{
+    m_tabWidget->setTabVisible(1, true);
+    m_tabWidget->tabBar()->setVisible(true);
+    m_tabWidget->setCurrentIndex(0);   // default: Natal
+
+    populateTable(m_natalTable,      natal);
+    populateTable(m_progressedTable, progressed);
+}
+
+void PlanetListWidget::populateTable(QTableWidget *table, const ChartData &chartData)
+{
     // Clear the table
-    m_table->setRowCount(0);
+    table->setRowCount(0);
 
     // Sort planets in traditional order
     QStringList orderedPlanets = {
@@ -74,7 +102,7 @@ void PlanetListWidget::updateData(const ChartData &chartData)
     }
 
     // Create font for symbols if Astromoony is available
-    QFont symbolFont = m_table->font();
+    QFont symbolFont = table->font();
     bool useCustomFont = !g_astroFontFamily.isEmpty();
     if (useCustomFont) {
         symbolFont = QFont(g_astroFontFamily, symbolFont.pointSize());
@@ -84,8 +112,8 @@ void PlanetListWidget::updateData(const ChartData &chartData)
     for (const QString &planetId : orderedPlanets) {
         if (planetMap.contains(planetId)) {
             const PlanetData &planet = planetMap[planetId];
-            int row = m_table->rowCount();
-            m_table->insertRow(row);
+            int row = table->rowCount();
+            table->insertRow(row);
 
             // Planet symbol and name
             QString planetSymbol = getSymbolForPlanet(toString(planet.id));
@@ -105,7 +133,7 @@ void PlanetListWidget::updateData(const ChartData &chartData)
             //QTableWidgetItem *signItem = new QTableWidgetItem(signName);
 
             if (useCustomFont) {
-                //QFont zodiacFont = m_table->font(); // ordinary UI font
+                //QFont zodiacFont = table->font(); // ordinary UI font
                 QFont zodiacFont("Dejavu Sans", 11);      // use a known system font
                 zodiacFont.setStyleStrategy(QFont::NoFontMerging); // prevent emoji fallback
 
@@ -125,15 +153,15 @@ void PlanetListWidget::updateData(const ChartData &chartData)
             QTableWidgetItem *houseItem = new QTableWidgetItem(planet.house);
 
             // Set items in the table
-            m_table->setItem(row, 0, planetItem);
-            m_table->setItem(row, 1, signItem);
-            m_table->setItem(row, 2, degreeItem);
-            m_table->setItem(row, 3, minuteItem);
-            m_table->setItem(row, 4, houseItem);
+            table->setItem(row, 0, planetItem);
+            table->setItem(row, 1, signItem);
+            table->setItem(row, 2, degreeItem);
+            table->setItem(row, 3, minuteItem);
+            table->setItem(row, 4, houseItem);
 
             // Center align all items
-            for (int col = 0; col < m_table->columnCount(); ++col) {
-                m_table->item(row, col)->setTextAlignment(Qt::AlignCenter);
+            for (int col = 0; col < table->columnCount(); ++col) {
+                table->item(row, col)->setTextAlignment(Qt::AlignCenter);
             }
         }
     }
@@ -141,8 +169,8 @@ void PlanetListWidget::updateData(const ChartData &chartData)
     // Add any remaining planets not in the ordered list
     for (const PlanetData &planet : chartData.planets) {
         if (!orderedPlanets.contains(toString(planet.id))) {
-            int row = m_table->rowCount();
-            m_table->insertRow(row);
+            int row = table->rowCount();
+            table->insertRow(row);
 
             // Planet name
             QTableWidgetItem *planetItem = new QTableWidgetItem(toString(planet.id));
@@ -165,22 +193,22 @@ void PlanetListWidget::updateData(const ChartData &chartData)
             QTableWidgetItem *houseItem = new QTableWidgetItem(planet.house);
 
             // Set items in the table
-            m_table->setItem(row, 0, planetItem);
-            m_table->setItem(row, 1, signItem);
-            m_table->setItem(row, 2, degreeItem);
-            m_table->setItem(row, 3, minuteItem);
-            m_table->setItem(row, 4, houseItem);
+            table->setItem(row, 0, planetItem);
+            table->setItem(row, 1, signItem);
+            table->setItem(row, 2, degreeItem);
+            table->setItem(row, 3, minuteItem);
+            table->setItem(row, 4, houseItem);
 
             // Center align all items
-            for (int col = 0; col < m_table->columnCount(); ++col) {
-                m_table->item(row, col)->setTextAlignment(Qt::AlignCenter);
+            for (int col = 0; col < table->columnCount(); ++col) {
+                table->item(row, col)->setTextAlignment(Qt::AlignCenter);
             }
         }
     }
     // Re-apply header modes/minimums after model changes (Qt 6.9 may reset these)
-    m_table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_table->horizontalHeader()->setMinimumSectionSize(1);
-    m_table->verticalHeader()->setMinimumSectionSize(1);
+    table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    table->horizontalHeader()->setMinimumSectionSize(1);
+    table->verticalHeader()->setMinimumSectionSize(1);
 }
 
 QString PlanetListWidget::getSymbolForPlanet(const QString &planetId)

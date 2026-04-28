@@ -223,8 +223,7 @@ QJsonObject MistralAPI::createPrompt(const QJsonObject &chartData) {
         systemMessage["content"] = QString(
             "You are an expert astrologer providing detailed and insightful interpretations of %1 charts. "
             "Secondary progressions represent the symbolic unfolding of the natal chart, where each day after birth corresponds to a year of life. "
-            "Analyze the progressed planets, houses, and aspects in the provided data, and explain how they reflect the person’s inner development, "
-            "psychological growth, and key life themes at this stage of their journey. "
+            "Analyze the progressed planets, houses, and aspects in the provided data, and explain how they reflect the person’s inner development, psychological growth, and key life themes at this stage of their journey. "
             "Be specific in describing how the Sun, Moon, and personal planets shift over time and how their progressed positions interact with the natal chart. "
             "Offer insights into career, relationships, emotional life, and personal transformation. "
             "Make the narrative detailed, providing both symbolic meaning and practical advice. "

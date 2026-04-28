@@ -6011,7 +6011,29 @@ void MainWindow::calculateSecondaryProgression()
     dialog->show();
 }
 
-// Helper: Calculate and display the secondary progression chart
+// Filter out additional bodies (Ceres, Pallas, etc.) when the checkbox is unchecked
+ChartData MainWindow::filterAdditionalBodies(const ChartData &data) const
+{
+    if (m_additionalBodiesCB->isChecked()) return data;
+
+    static const QSet<Planet> additionalSet = {
+        Planet::Ceres, Planet::Pallas, Planet::Juno, Planet::Vesta,
+        Planet::Lilith, Planet::Vertex, Planet::PartOfSpirit, Planet::EastPoint
+    };
+
+    ChartData result = data;
+    result.planets.erase(std::remove_if(result.planets.begin(), result.planets.end(),
+        [](const PlanetData &p){ return additionalSet.contains(p.id); }),
+        result.planets.end());
+    result.aspects.erase(std::remove_if(result.aspects.begin(), result.aspects.end(),
+        [](const AspectData &a){
+            return additionalSet.contains(a.planet1) || additionalSet.contains(a.planet2);
+        }),
+        result.aspects.end());
+    return result;
+}
+
+// Helper: Calculate and display the secondary progression chart as a bi-wheel
 void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
 {
     QString dateText = m_birthDateEdit->text();
@@ -6021,9 +6043,9 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
 
     QDate birthDate = getBirthDate();
     QTime birthTime = QTime::fromString(m_birthTimeEdit->text(), "HH:mm");
-    QString utcOffset = m_utcOffsetCombo->currentText();
-    QString latitude = m_latitudeEdit->text();
-    QString longitude = m_longitudeEdit->text();
+    QString utcOffset  = m_utcOffsetCombo->currentText();
+    QString latitude   = m_latitudeEdit->text();
+    QString longitude  = m_longitudeEdit->text();
     QString houseSystem = m_houseSystemCombo->currentText();
 
     if (latitude.isEmpty() || longitude.isEmpty()) {
@@ -6031,54 +6053,71 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
         return;
     }
 
-    // Calculate the progressed date: birth date + progressionYear years
-    QDate progressedDate = birthDate.addYears(progressionYear);
+    // Secondary progressions: 1 day after birth = year 1, etc.
+    QDate progressedDate = birthDate.addDays(progressionYear);
+    progressedDate = checkAndConvertJulian(progressedDate, useJulianForPre1582Action->isChecked());
 
-    // Reset chart state before new calculation
+    // Reset chart state
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
-    progressedDate = checkAndConvertJulian(progressedDate, useJulianForPre1582Action->isChecked());
-
-    m_currentChartData = m_chartDataManager.calculateChartAsJson(
-                progressedDate, birthTime, utcOffset, latitude, longitude, houseSystem
-                );
-
-    if (m_chartDataManager.getLastError().isEmpty()) {
-        displayChart(m_currentChartData);
-        m_chartCalculated = true;
-        AsteriaGlobals::lastGeneratedChartType = "Secondary Progression";
-        m_getInterpretationButton->setEnabled(true);
-        getPredictionButton->setEnabled(true);
-        getTransitsButton->setEnabled(true);
-
-        m_currentInterpretation.clear();
-        m_interpretationtextEdit->clear();
-        m_interpretationtextEdit->setPlaceholderText("Click 'Get AI Interpretation' to analyze this chart.");
-
-        statusBar()->showMessage("Secondary progression chart calculated successfully", 3000);
-
-        QString dateStr = m_currentChartData.value("date").toString();
-        QString timeStr = m_currentChartData.value("time").toString();
-        QString infoText = QString(
-                    "Secondary Progression Chart\n"
-                    "Progressed Date: %1\n"
-                    "Time: %2\n"
-                    "Progression Year: %3\n\n"
-                    ).arg(dateStr, timeStr).arg(progressionYear);
-
-        m_interpretationtextEdit->append(infoText);
-        m_currentInterpretation.append(infoText);
-
-    } else {
-        handleError("Secondary progression calculation error: " + m_chartDataManager.getLastError());
-        m_chartCalculated = false;
-        m_getInterpretationButton->setEnabled(false);
-        getPredictionButton->setEnabled(false);
-        m_chartRenderer->scene()->clear();
+    // ── Calculate both charts ────────────────────────────────────────────────
+    ChartData natalRaw = m_chartDataManager.calculateChart(
+        birthDate, birthTime, utcOffset, latitude, longitude, houseSystem);
+    if (!m_chartDataManager.getLastError().isEmpty()) {
+        handleError("Natal chart error: " + m_chartDataManager.getLastError());
+        return;
     }
+
+    ChartData progressedRaw = m_chartDataManager.calculateChart(
+        progressedDate, birthTime, utcOffset, latitude, longitude, houseSystem);
+    if (!m_chartDataManager.getLastError().isEmpty()) {
+        handleError("Secondary progression calculation error: " + m_chartDataManager.getLastError());
+        return;
+    }
+
+    // Apply additional-bodies filter
+    ChartData natal     = filterAdditionalBodies(natalRaw);
+    ChartData progressed = filterAdditionalBodies(progressedRaw);
+
+    // Progressed-to-natal interaspects
+    QVector<AspectData> interAspects = m_chartDataManager.calculateInteraspects(progressed, natal);
+
+    // ── Render bi-wheel ──────────────────────────────────────────────────────
+    m_chartRenderer->setDualChartData(natal, progressed, interAspects);
+    m_chartRenderer->renderChart();
+
+    // ── Update side panels ───────────────────────────────────────────────────
+    m_planetListWidget->updateDualData(natal, progressed);
+    m_aspectarianWidget->updateDualData(natal, progressed, interAspects);
+    m_modalityElementWidget->updateDualData(natal, progressed);
+
+    // Store progressed chart JSON for AI interpretation
+    m_currentChartData = m_chartDataManager.chartDataToJson(progressedRaw);
+    updateChartDetailsTables(m_currentChartData);
+
+    m_chartCalculated = true;
+    AsteriaGlobals::lastGeneratedChartType = "Secondary Progression";
+    m_getInterpretationButton->setEnabled(true);
+    getPredictionButton->setEnabled(true);
+    getTransitsButton->setEnabled(true);
+
+    m_currentInterpretation.clear();
+    m_interpretationtextEdit->clear();
+    m_interpretationtextEdit->setPlaceholderText("Click 'Get AI Interpretation' to analyze this chart.");
+    statusBar()->showMessage("Secondary progression bi-wheel calculated successfully", 3000);
+
+    QString infoText = QString(
+        "Secondary Progression Chart (Bi-Wheel)\n"
+        "Natal: %1\n"
+        "Progressed Date: %2  (Year %3)\n\n")
+        .arg(birthDate.toString("yyyy/MM/dd"))
+        .arg(progressedDate.toString("yyyy/MM/dd"))
+        .arg(progressionYear);
+    m_interpretationtextEdit->append(infoText);
+    m_currentInterpretation.append(infoText);
 }
 
 void MainWindow::showNewFeaturesDialog() {
