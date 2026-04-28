@@ -52,9 +52,13 @@ if(FLATHUB_BUILD)
     include_directories(${SWISSEPH_INCLUDE_DIR})
 else()
     # For local builds, use the local Swiss Ephemeris
-    set(SWISSEPH_DIR "/home/dharma/ssd/cpp/swisseph")
+    if(NOT SWISSEPH_DIR)
+        set(SWISSEPH_DIR "C:/Users/ivan/git/swisseph")
+    endif()
+    if(NOT SWISSEPH_DATA_DIR)
+        set(SWISSEPH_DATA_DIR "C:/Users/ivan/git/ephe/ephemeris")
+    endif()
     set(SWISSEPH_INCLUDE_DIR "${SWISSEPH_DIR}")
-    set(SWISSEPH_DATA_DIR "${SWISSEPH_DIR}/ephe")
     include_directories(${SWISSEPH_INCLUDE_DIR})
 
     # Swiss Ephemeris source files
