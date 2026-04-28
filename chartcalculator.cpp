@@ -260,25 +260,23 @@ QString ChartCalculator::findHouse(double longitude, const QVector<HouseData> &h
 QVector<AspectData> ChartCalculator::calculateAspects(const QVector<PlanetData> &planets, double orbMax) const {
     QVector<AspectData> aspects;
 
-    // Define aspect types and their angles
-    struct AspectType {
-        QString name;
+    // Define aspect rules (angle + max orb)
+    struct AspectRule {
+        AspectType type;
         double angle;
         double orb;
     };
     orbMax= getOrbMax();
-    const AspectType aspectTypes[] = {
-        {"CON", 0.0, orbMax},      // Conjunction
-        {"OPP", 180.0, orbMax},    // Opposition
-        {"TRI", 120.0, orbMax},    // Trine
-        {"SQR", 90.0, orbMax},     // Square
-        {"SEX", 60.0, orbMax},     // Sextile
-        {"QUI", 150.0, orbMax * 0.75},  // Quintile
-        {"SSQ", 45.0, orbMax * 0.75},  // Semi-square
-        {"SQQ", 135.0, orbMax * 0.75}, // Sesquiquadrate
-        {"SSX", 30.0, orbMax * 0.75}  // Semi-sextile
-        //{"SSP", 0.0, orbMax * 0.5},     // Semiparallel (custom) - typically for declination
-        //{"PAR", 0.0, orbMax * 0.5}      // Parallel (custom) - typically for declination
+    const AspectRule aspectRules[] = {
+        {AspectType::Conjunction,    0.0,   orbMax},
+        {AspectType::Opposition,     180.0, orbMax},
+        {AspectType::Trine,          120.0, orbMax},
+        {AspectType::Square,         90.0,  orbMax},
+        {AspectType::Sextile,        60.0,  orbMax},
+        {AspectType::Quincunx,       150.0, orbMax * 0.75},
+        {AspectType::Semisquare,     45.0,  orbMax * 0.75},
+        {AspectType::Sesquiquadrate, 135.0, orbMax * 0.75},
+        {AspectType::Semisextile,    30.0,  orbMax * 0.75}
     };
 
     // Calculate aspects between all planets
@@ -291,14 +289,14 @@ QVector<AspectData> ChartCalculator::calculateAspects(const QVector<PlanetData> 
             double diff = fabs(angle1 - angle2);
             if (diff > 180.0) diff = 360.0 - diff;
 
-            // Check each aspect type
-            for (const AspectType &aspectType : aspectTypes) {
-                double orb = fabs(diff - aspectType.angle);
-                if (orb <= aspectType.orb) {
+            // Check each aspect rule
+            for (const AspectRule &aspectRule : aspectRules) {
+                double orb = fabs(diff - aspectRule.angle);
+                if (orb <= aspectRule.orb) {
                     AspectData aspect;
                     aspect.planet1 = planets[i].id;
                     aspect.planet2 = planets[j].id;
-                    aspect.aspectType = aspectType.name;
+                    aspect.aspectType = aspectRule.type;
                     aspect.orb = orb;
                     aspects.append(aspect);
                     break;  // Only add the closest matching aspect
@@ -464,6 +462,11 @@ QVector<PlanetData> ChartCalculator::calculatePlanetPositions(double jd, const Q
         "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
         "North Node", "Chiron"
     };
+    Planet planetEnums[] = {
+        Planet::Sun,   Planet::Moon,    Planet::Mercury, Planet::Venus,  Planet::Mars,
+        Planet::Jupiter, Planet::Saturn, Planet::Uranus,  Planet::Neptune, Planet::Pluto,
+        Planet::NorthNode, Planet::Chiron
+    };
 
     int numPlanets = sizeof(planetIds) / sizeof(planetIds[0]);
 
@@ -482,7 +485,7 @@ QVector<PlanetData> ChartCalculator::calculatePlanetPositions(double jd, const Q
         }
 
         PlanetData planet;
-        planet.id = planetNames[i];
+        planet.id = planetEnums[i];
         planet.longitude = xx[0]; // Longitude in degrees
         planet.latitude = xx[1];  // Latitude in degrees
         planet.sign = getZodiacSign(planet.longitude);
@@ -494,9 +497,9 @@ QVector<PlanetData> ChartCalculator::calculatePlanetPositions(double jd, const Q
 
     // Add South Node (opposite to North Node)
     for (const PlanetData &planet : planets) {
-        if (planet.id == "North Node") {
+        if (planet.id == Planet::NorthNode) {
             PlanetData southNode;
-            southNode.id = "South Node";
+            southNode.id = Planet::SouthNode;
             southNode.longitude = fmod(planet.longitude + 180.0, 360.0);
             southNode.latitude = -planet.latitude;
             southNode.sign = getZodiacSign(southNode.longitude);
@@ -787,42 +790,45 @@ QString ChartCalculator::calculateTransits(const QDate &birthDate,
     QDateTime transitStartDateTime(transitStartDate, QTime(0, 0));
     double transitStartJd = dateTimeToJulianDay(transitStartDateTime, "+0:00");
 
-    QStringList includedTargetObjects;
-    QStringList excludedTransitingObjects;
+    QVector<Planet> includedTargetObjects;
+    QVector<Planet> excludedTransitingObjects;
 
     if (AsteriaGlobals::additionalBodiesEnabled) {
-        includedTargetObjects = {"Sun", "Moon", "Mercury", "Venus", "Mars",
-                                 "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
-                                 "Lilith", "Ceres", "Pallas", "Juno", "Vesta", "Vertex", "East Point", "Chiron",
-                                 "Pars Fortuna", "North Node", "South Node"};
-        excludedTransitingObjects = {""};
+        includedTargetObjects = {
+            Planet::Sun,     Planet::Moon,    Planet::Mercury, Planet::Venus,     Planet::Mars,
+            Planet::Jupiter, Planet::Saturn,  Planet::Uranus,  Planet::Neptune,   Planet::Pluto,
+            Planet::Lilith,  Planet::Ceres,   Planet::Pallas,  Planet::Juno,      Planet::Vesta,
+            Planet::Vertex,  Planet::EastPoint, Planet::Chiron,
+            Planet::ParsFortuna, Planet::NorthNode, Planet::SouthNode
+        };
+        excludedTransitingObjects = {};
     } else {
-        includedTargetObjects = {"Sun", "Moon", "Mercury", "Venus", "Mars",
-                                 "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"};
-        excludedTransitingObjects = {"Chiron", "North Node", "South Node"};
+        includedTargetObjects = {
+            Planet::Sun,     Planet::Moon,    Planet::Mercury, Planet::Venus,   Planet::Mars,
+            Planet::Jupiter, Planet::Saturn,  Planet::Uranus,  Planet::Neptune, Planet::Pluto
+        };
+        excludedTransitingObjects = {Planet::Chiron, Planet::NorthNode, Planet::SouthNode};
     }
 
-    struct AspectType {
-        QString code;
+    struct AspectRule {
+        AspectType type;
         double angle;
         double orb;
     };
 
     double orbMax = getOrbMax();
-    const AspectType aspectTypes[] = {
-        {"CON", 0.0, orbMax},
-        {"OPP", 180.0, orbMax},
-        {"TRI", 120.0, orbMax},
-        {"SQR", 90.0, orbMax},
-        {"SEX", 60.0, orbMax},
-        {"QUI", 150.0, orbMax * 0.75},
-        {"SSQ", 45.0, orbMax * 0.75},
-        {"SQQ", 135.0, orbMax * 0.75},
-
-
-        {"SSX", 30.0, orbMax * 0.75}
+    const AspectRule aspectRules[] = {
+        {AspectType::Conjunction,    0.0,   orbMax},
+        {AspectType::Opposition,     180.0, orbMax},
+        {AspectType::Trine,          120.0, orbMax},
+        {AspectType::Square,         90.0,  orbMax},
+        {AspectType::Sextile,        60.0,  orbMax},
+        {AspectType::Quincunx,       150.0, orbMax * 0.75},
+        {AspectType::Semisquare,     45.0,  orbMax * 0.75},
+        {AspectType::Sesquiquadrate, 135.0, orbMax * 0.75},
+        {AspectType::Semisextile,    30.0,  orbMax * 0.75}
     };
-    int numAspectTypes = sizeof(aspectTypes) / sizeof(aspectTypes[0]);
+    int numAspectRules = sizeof(aspectRules) / sizeof(aspectRules[0]);
 
     QString report;
     report += "---TRANSITS---\n";
@@ -856,22 +862,20 @@ QString ChartCalculator::calculateTransits(const QDate &birthDate,
                 double diff = fabs(transitPlanet.longitude - natalPlanet.longitude);
                 if (diff > 180.0) diff = 360.0 - diff;
 
-                for (int j = 0; j < numAspectTypes; j++) {
-                    double orb = fabs(diff - aspectTypes[j].angle);
-                    if (orb <= aspectTypes[j].orb) {
-                        QString transitPlanetName = transitPlanet.id;
+                for (int j = 0; j < numAspectRules; j++) {
+                    double orb = fabs(diff - aspectRules[j].angle);
+                    if (orb <= aspectRules[j].orb) {
+                        QString transitPlanetName = toString(transitPlanet.id);
                         if (transitPlanet.isRetrograde) {
                             transitPlanetName += " (R)";
                         }
 
-                        QString aspectStr = QString("%1 %2 %3( %4°)")
+                        QString aspectStr = QString("%1 %2 %3 (%4°)")
                                                 .arg(transitPlanetName)
-                                                .arg(aspectTypes[j].code)
-                                                .arg(natalPlanet.id)
-
+                                                .arg(toString(aspectRules[j].type))
+                                                .arg(toString(natalPlanet.id))
                                                 .arg(orb, 0, 'f', 2);
                         dayAspects.append(aspectStr);
-
 
                         break;
                     }
@@ -1036,7 +1040,7 @@ void ChartCalculator::addSyzygyAndParsFortuna(QVector<PlanetData> &planets, doub
                                               const QVector<AngleData> &angles) const {
     // Calculate Syzygy (Pre-Natal Lunation - New or Full Moon)
     PlanetData syzygy;
-    syzygy.id = "Syzygy";
+    syzygy.id = Planet::Syzygy;
 
     // Find the exact time of the last New Moon or Full Moon before birth
     double tjd_start = jd - 30; // Start searching 30 days before birth
@@ -1190,14 +1194,14 @@ void ChartCalculator::addSyzygyAndParsFortuna(QVector<PlanetData> &planets, doub
     double sun_lon = 0.0;
     double moon_lon = 0.0;
     for (const PlanetData &planet : planets) {
-        if (planet.id == "Sun") {
+        if (planet.id == Planet::Sun) {
             sun_lon = planet.longitude;
-        } else if (planet.id == "Moon") {
+        } else if (planet.id == Planet::Moon) {
             moon_lon = planet.longitude;
         }
     }
     PlanetData parsFortuna;
-    parsFortuna.id = "Pars Fortuna";
+    parsFortuna.id = Planet::ParsFortuna;
     parsFortuna.longitude = fmod(asc + moon_lon - sun_lon, 360.0);
     if (parsFortuna.longitude < 0) parsFortuna.longitude += 360.0;
     parsFortuna.sign = getZodiacSign(parsFortuna.longitude);
@@ -1214,13 +1218,14 @@ void ChartCalculator::calculateAdditionalBodies(QVector<PlanetData> &planets, do
 
     // 1. Add Ceres, Pallas, Juno, Vesta (major asteroids)
     int asteroidIds[] = {SE_CERES, SE_PALLAS, SE_JUNO, SE_VESTA};
-    QString asteroidNames[] = {"Ceres", "Pallas", "Juno", "Vesta"};
+    QString asteroidNames[] = {"Ceres", "Pallas", "Juno", "Vesta"}; // kept for debug output
+    Planet asteroidPlanets[] = {Planet::Ceres, Planet::Pallas, Planet::Juno, Planet::Vesta};
 
     for (int i = 0; i < 4; i++) {
         double xx[6];
         if (swe_calc_ut(jd, asteroidIds[i], flags, xx, serr) >= 0) {
             PlanetData asteroid;
-            asteroid.id = asteroidNames[i];
+            asteroid.id = asteroidPlanets[i];
             asteroid.longitude = xx[0];
             asteroid.latitude = xx[1];
             asteroid.sign = getZodiacSign(asteroid.longitude);
@@ -1234,7 +1239,7 @@ void ChartCalculator::calculateAdditionalBodies(QVector<PlanetData> &planets, do
     for (const HouseData &house : houses) {
         if (house.id == "Vertex") {
             PlanetData vertex;
-            vertex.id = "Vertex";
+            vertex.id = Planet::Vertex;
             vertex.longitude = house.longitude;
             vertex.sign = getZodiacSign(vertex.longitude);
             vertex.house = findHouse(vertex.longitude, houses);
@@ -1248,7 +1253,7 @@ void ChartCalculator::calculateAdditionalBodies(QVector<PlanetData> &planets, do
     double xx[6];
     if (swe_calc_ut(jd, SE_MEAN_APOG, flags, xx, serr) >= 0) {
         PlanetData lilith;
-        lilith.id = "Lilith";
+        lilith.id = Planet::Lilith;
         lilith.longitude = xx[0];
         lilith.latitude = xx[1];
         lilith.sign = getZodiacSign(lilith.longitude);
@@ -1263,9 +1268,9 @@ void ChartCalculator::calculateAdditionalBodies(QVector<PlanetData> &planets, do
     double asc = 0.0, sun_lon = 0.0, moon_lon = 0.0;
 
     for (const PlanetData &planet : planets) {
-        if (planet.id == "Sun") {
+        if (planet.id == Planet::Sun) {
             sun_lon = planet.longitude;
-        } else if (planet.id == "Moon") {
+        } else if (planet.id == Planet::Moon) {
             moon_lon = planet.longitude;
         }
     }
@@ -1279,7 +1284,7 @@ void ChartCalculator::calculateAdditionalBodies(QVector<PlanetData> &planets, do
     }
 
     PlanetData partOfSpirit;
-    partOfSpirit.id = "Part of Spirit";
+    partOfSpirit.id = Planet::PartOfSpirit;
     partOfSpirit.longitude = fmod(asc + sun_lon - moon_lon, 360.0);
     if (partOfSpirit.longitude < 0) partOfSpirit.longitude += 360.0;
     partOfSpirit.sign = getZodiacSign(partOfSpirit.longitude);
@@ -1295,7 +1300,7 @@ void ChartCalculator::calculateAdditionalBodies(QVector<PlanetData> &planets, do
     double cusps[13], ascmc[10];
     if (swe_houses_ex(jd, 0, 0.0, 0.0, int(houseSystem[0].toLatin1()), cusps, ascmc) == 0) {
         PlanetData eastPoint;
-        eastPoint.id = "East Point";
+        eastPoint.id = Planet::EastPoint;
         eastPoint.longitude = ascmc[2]; // ARMC with latitude 0
         eastPoint.sign = getZodiacSign(eastPoint.longitude);
         eastPoint.house = findHouse(eastPoint.longitude, houses);

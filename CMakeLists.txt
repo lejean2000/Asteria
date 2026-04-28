@@ -98,6 +98,7 @@ set(PROJECT_SOURCES
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
+    astro_types.h astro_types.cpp
     chartcalculator.h chartcalculator.cpp
     chartdatamanager.h chartdatamanager.cpp
     chartrenderer.h chartrenderer.cpp

@@ -70,7 +70,7 @@ void PlanetListWidget::updateData(const ChartData &chartData)
     // Create a map for quick lookup
     QMap<QString, PlanetData> planetMap;
     for (const PlanetData &planet : chartData.planets) {
-        planetMap[planet.id] = planet;
+        planetMap[toString(planet.id)] = planet;
     }
 
     // Create font for symbols if Astromoony is available
@@ -88,9 +88,9 @@ void PlanetListWidget::updateData(const ChartData &chartData)
             m_table->insertRow(row);
 
             // Planet symbol and name
-            QString planetSymbol = getSymbolForPlanet(planet.id);
-            //QTableWidgetItem *planetItem = new QTableWidgetItem(planetSymbol + " " + planet.id);
-            QTableWidgetItem *planetItem = new QTableWidgetItem(planetSymbol + " " + planet.id + (planet.isRetrograde && planet.id != "North Node" && planet.id != "South Node" ? " ℞ " : ""));
+            QString planetSymbol = getSymbolForPlanet(toString(planet.id));
+            //QTableWidgetItem *planetItem = new QTableWidgetItem(planetSymbol + " " + toString(planet.id));
+            QTableWidgetItem *planetItem = new QTableWidgetItem(planetSymbol + " " + toString(planet.id) + (planet.isRetrograde && planet.id != Planet::NorthNode && planet.id != Planet::SouthNode ? " ℞ " : ""));
             if (useCustomFont) {
                 planetItem->setFont(symbolFont);
             }
@@ -140,12 +140,12 @@ void PlanetListWidget::updateData(const ChartData &chartData)
 
     // Add any remaining planets not in the ordered list
     for (const PlanetData &planet : chartData.planets) {
-        if (!orderedPlanets.contains(planet.id)) {
+        if (!orderedPlanets.contains(toString(planet.id))) {
             int row = m_table->rowCount();
             m_table->insertRow(row);
 
             // Planet name
-            QTableWidgetItem *planetItem = new QTableWidgetItem(planet.id);
+            QTableWidgetItem *planetItem = new QTableWidgetItem(toString(planet.id));
 
             // Sign
             //QTableWidgetItem *signItem = new QTableWidgetItem(planet.sign);

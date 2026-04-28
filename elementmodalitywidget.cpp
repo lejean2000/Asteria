@@ -232,7 +232,7 @@ void ElementModalityWidget::updateData(const ChartData &chartData) {
         QString signName = planet.sign.split(' ').first();
 
         if (signPlanets.contains(signName)) {
-            signPlanets[signName].append(planet.id);
+            signPlanets[signName].append(toString(planet.id));
 
             // Update element and modality counts
             QString element = getElement(signName);

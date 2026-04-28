@@ -502,10 +502,10 @@ void ChartRenderer::drawAspects() {
         reversedAspect.orb = aspect.orb;
 
         // Add the original aspect to the first planet's list
-        planetAspects[aspect.planet1].append(aspect);
+        planetAspects[toString(aspect.planet1)].append(aspect);
 
         // Add the reversed aspect to the second planet's list
-        planetAspects[aspect.planet2].append(reversedAspect);
+        planetAspects[toString(aspect.planet2)].append(reversedAspect);
     }
 
     // Second pass: update planet tooltips with aspect information
@@ -535,8 +535,8 @@ void ChartRenderer::drawAspects() {
             // Add each aspect to the tooltip
             for (const AspectData &aspect : aspects) {
                 aspectText += QString("\n• %1 %2 (Orb: %3°)")
-                                  .arg(aspect.aspectType)
-                                  .arg(aspect.planet2) // The other planet
+                                  .arg(toString(aspect.aspectType))
+                                  .arg(toString(aspect.planet2)) // The other planet
                                   .arg(aspect.orb, 0, 'f', 1);
             }
 
@@ -547,13 +547,13 @@ void ChartRenderer::drawAspects() {
 
     // Third pass: draw the aspect lines (without tooltips)
     for (const AspectData &aspect : m_chartData.aspects) {
-        if (!m_planetItems.contains(aspect.planet1) || !m_planetItems.contains(aspect.planet2)) {
+        if (!m_planetItems.contains(toString(aspect.planet1)) || !m_planetItems.contains(toString(aspect.planet2))) {
 
             continue; // Skip if either planet is not found
         }
 
-        PlanetItem *planet1Item = m_planetItems[aspect.planet1];
-        PlanetItem *planet2Item = m_planetItems[aspect.planet2];
+        PlanetItem *planet1Item = m_planetItems[toString(aspect.planet1)];
+        PlanetItem *planet2Item = m_planetItems[toString(aspect.planet2)];
 
         // Get center points of the planets
         QPointF p1Center = planet1Item->pos() + QPointF(PLANET_SIZE/2, PLANET_SIZE/2);
@@ -579,8 +579,8 @@ void ChartRenderer::drawAspects() {
 
         // Create aspect line from periphery to periphery
         //QGraphicsLineItem *aspectLine = new QGraphicsLineItem(QLineF(p1Periphery, p2Periphery));
-        AspectItem *aspectLine = new AspectItem(aspect.planet1, aspect.planet2,
-                                                aspect.aspectType, aspect.orb);
+        AspectItem *aspectLine = new AspectItem(toString(aspect.planet1), toString(aspect.planet2),
+                                                toString(aspect.aspectType), aspect.orb);
         aspectLine->setLine(QLineF(p1Periphery, p2Periphery));
         // Set line style and color based on aspect type
         QPen pen(aspectColor(aspect.aspectType), 1);
@@ -795,22 +795,19 @@ QPointF ChartRenderer::longitudeToPoint(double longitude, double radius){
 }
 
 
-QColor ChartRenderer::aspectColor(const QString &aspectType) {
-    if (aspectType == "CON") return QColor(128, 128, 128);       // Conjunction - Neutral Gray
-    if (aspectType == "OPP") return QColor(220, 20, 60);         // Opposition - Crimson
-    if (aspectType == "SQR") return QColor(255, 69, 0);          // Square - Fiery Red-Orange
-    if (aspectType == "TRI") return QColor(30, 144, 255);        // Trine - Dodger Blue
-    if (aspectType == "SEX") return QColor(0, 206, 209);         // Sextile - Turquoise
-    if (aspectType == "QUI") return QColor(138, 43, 226);        // Quincunx - Blue Violet
-    if (aspectType == "SSQ") return QColor(255, 165, 0);         // Semi-square - Orange
-    if (aspectType == "SSX") return QColor(0, 128, 0);           // Semi-sextile - Classic Green
-    if (aspectType == "SQQ") return QColor(255, 105, 180); // Sesquiquadrate - Pink
-
-
-    //if (aspectType == "SSP") return QColor(124, 252, 0);         // Semiparallel (custom) - Lawn Green
-    //if (aspectType == "PAR") return QColor(218, 112, 214);       // Parallel (custom) - Orchid
-
-    return QColor(105, 105, 105); // Default - Dim Gray
+QColor ChartRenderer::aspectColor(AspectType aspectType) {
+    switch (aspectType) {
+    case AspectType::Conjunction:    return QColor(128, 128, 128); // Neutral Gray
+    case AspectType::Opposition:     return QColor(220,  20,  60); // Crimson
+    case AspectType::Square:         return QColor(255,  69,   0); // Fiery Red-Orange
+    case AspectType::Trine:          return QColor( 30, 144, 255); // Dodger Blue
+    case AspectType::Sextile:        return QColor(  0, 206, 209); // Turquoise
+    case AspectType::Quincunx:       return QColor(138,  43, 226); // Blue Violet
+    case AspectType::Semisquare:     return QColor(255, 165,   0); // Orange
+    case AspectType::Semisextile:    return QColor(  0, 128,   0); // Classic Green
+    case AspectType::Sesquiquadrate: return QColor(255, 105, 180); // Pink
+    default:                         return QColor(105, 105, 105); // Dim Gray
+    }
 }
 
 
@@ -831,13 +828,13 @@ QColor ChartRenderer::aspectColor(const QString &aspectType) {
 }
 */
 
-bool ChartRenderer::isMajorAspect(const QString &aspectType) {
+bool ChartRenderer::isMajorAspect(AspectType aspectType) {
     // Major aspects: Conjunction, Opposition, Square, Trine, Sextile
-    return (aspectType == "CON" ||
-            aspectType == "OPP" ||
-            aspectType == "SQR" ||
-            aspectType == "TRI" ||
-            aspectType == "SEX");
+    return (aspectType == AspectType::Conjunction ||
+            aspectType == AspectType::Opposition  ||
+            aspectType == AspectType::Square      ||
+            aspectType == AspectType::Trine       ||
+            aspectType == AspectType::Sextile);
 }
 
 QString ChartRenderer::signSymbol(const QString &signName){
@@ -958,7 +955,7 @@ void ChartRenderer::drawPlanet(const PlanetData &planet, double radius) {
 
 
 
-    PlanetItem *planetItem = new PlanetItem(planet.id, planet.sign,
+    PlanetItem *planetItem = new PlanetItem(toString(planet.id), planet.sign,
                                             planet.longitude, planet.house, planet.isRetrograde);
 
 
@@ -967,7 +964,7 @@ void ChartRenderer::drawPlanet(const PlanetData &planet, double radius) {
 
     // Add to scene and store in the map
     m_scene->addItem(planetItem);
-    m_planetItems[planet.id] = planetItem;
+    m_planetItems[toString(planet.id)] = planetItem;
 }
 
 

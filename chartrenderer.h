@@ -112,7 +112,7 @@ private:
     QPointF longitudeToPoint(double longitude, double radius);
 
     // Get color for aspect type
-    QColor aspectColor(const QString &aspectType);
+    QColor aspectColor(AspectType aspectType);
 
     // Get symbol for planet or sign
     QString planetSymbol(const QString &planetId);
@@ -140,7 +140,7 @@ private:
     // Constants
     //static const int DEFAULT_CHART_SIZE = 600;
     //static const int DEFAULT_WHEEL_THICKNESS = 10;
-    bool isMajorAspect(const QString &aspectType);
+    bool isMajorAspect(AspectType aspectType);
     void updateSettings(bool showAspects, bool showHouseCusps, bool showPlanetSymbols, int chartSize);
     double getAscendantLongitude() const;
 };

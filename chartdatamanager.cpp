@@ -121,7 +121,7 @@ QJsonArray ChartDataManager::planetsToJson(const QVector<PlanetData> &planets)
     QJsonArray jsonArray;
     for (const PlanetData &planet : planets) {
         QJsonObject jsonPlanet;
-        jsonPlanet["id"] = planet.id;
+        jsonPlanet["id"] = toString(planet.id);
         jsonPlanet["sign"] = planet.sign;
         jsonPlanet["longitude"] = planet.longitude;
         jsonPlanet["house"] = planet.house;
@@ -167,9 +167,9 @@ QJsonArray ChartDataManager::aspectsToJson(const QVector<AspectData> &aspects)
 
     for (const AspectData &aspect : aspects) {
         QJsonObject jsonAspect;
-        jsonAspect["planet1"] = aspect.planet1;
-        jsonAspect["planet2"] = aspect.planet2;
-        jsonAspect["aspectType"] = aspect.aspectType;
+        jsonAspect["planet1"] = toString(aspect.planet1);
+        jsonAspect["planet2"] = toString(aspect.planet2);
+        jsonAspect["aspectType"] = toString(aspect.aspectType);
         jsonAspect["orb"] = aspect.orb;
         jsonArray.append(jsonAspect);
     }

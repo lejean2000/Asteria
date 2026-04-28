@@ -6,13 +6,14 @@
 #include <QTime>
 #include <QString>
 #include <QVector>
+#include "astro_types.h"
 
 // Forward declare Swiss Ephemeris types to avoid including C headers in header
 typedef void* SWEPH_HANDLE;
 
 // Structure to hold planet information
 struct PlanetData {
-    QString id;
+    Planet  id;        // strongly-typed celestial body identifier
     QString sign;
     double longitude;
     double latitude;
@@ -36,10 +37,10 @@ struct AngleData {
 
 // Structure to hold aspect information
 struct AspectData {
-    QString planet1;
-    QString planet2;
-    QString aspectType;
-    double orb;
+    Planet     planet1;
+    Planet     planet2;
+    AspectType aspectType;
+    double     orb;
 };
 
 // Structure to hold the complete chart data

@@ -20,8 +20,8 @@ private:
     QLabel *m_titleLabel;
 
     void setupUi();
-    QColor aspectColor(const QString &aspectType);
-    QString aspectSymbol(const QString &aspectType);
+    QColor aspectColor(AspectType aspectType);
+    QString aspectSymbol(AspectType aspectType);
 };
 
 #endif // ASPECTARIANWIDGET_H

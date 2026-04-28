@@ -28,19 +28,19 @@
 #endif
 
 #include <QTextDocument>
-#include<QScrollBar>
-#include"Globals.h"
-#include"aspectsettingsdialog.h"
+#include <QScrollBar>
+#include "Globals.h"
+#include "aspectsettingsdialog.h"
 #include <QCheckBox>  // Add this include if still needed
 #include <QRegularExpression>
-#include<QClipboard>
-#include<QDrag>
-#include<QDragEnterEvent>
-#include<QDragLeaveEvent>
-#include<QDragMoveEvent>
-#include<QDropEvent>
-#include<QMimeData>
-#include<QProcess>
+#include <QClipboard>
+#include <QDrag>
+#include <QDragEnterEvent>
+#include <QDragLeaveEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QMimeData>
+#include <QProcess>
 
 extern QString g_astroFontFamily;
 
@@ -2212,7 +2212,7 @@ ChartData MainWindow::convertJsonToChartData(const QJsonObject &jsonData)
         for (const QJsonValue &value : planetsArray) {
             QJsonObject planetObj = value.toObject();
             PlanetData planet;
-            planet.id = planetObj["id"].toString();
+            planet.id = planetFromString(planetObj["id"].toString());
             planet.longitude = planetObj["longitude"].toDouble();
             planet.latitude = planetObj.contains("latitude") ? planetObj["latitude"].toDouble() : 0.0;
             // Remove the speed line since PlanetData doesn't have this member
@@ -2261,9 +2261,9 @@ ChartData MainWindow::convertJsonToChartData(const QJsonObject &jsonData)
         for (const QJsonValue &value : aspectsArray) {
             QJsonObject aspectObj = value.toObject();
             AspectData aspect;
-            aspect.planet1 = aspectObj["planet1"].toString();
-            aspect.planet2 = aspectObj["planet2"].toString();
-            aspect.aspectType = aspectObj["aspectType"].toString();
+            aspect.planet1   = planetFromString(aspectObj["planet1"].toString());
+            aspect.planet2   = planetFromString(aspectObj["planet2"].toString());
+            aspect.aspectType = aspectTypeFromString(aspectObj["aspectType"].toString());
             aspect.orb = aspectObj.contains("orb") ? aspectObj["orb"].toDouble() : 0.0;
             chartData.aspects.append(aspect);
         }

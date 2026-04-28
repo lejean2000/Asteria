@@ -1,11 +1,11 @@
 #include "mainwindow.h"
 #include <QApplication>
 #include <QCoreApplication>
-#include<QSettings>
+#include <QSettings>
 #include <QFontDatabase>
 #include <QString>
-#include"Globals.h"
-#include<QDir>
+#include "Globals.h"
+#include <QDir>
 #include <QFile>
 #include <QTextStream>
 #include <QDateTime>
