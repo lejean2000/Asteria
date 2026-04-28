@@ -62,7 +62,7 @@ public:
 public slots:
     void interpretTransits(const QJsonObject &transitData);
     void setLanguage(const QString& language) {
-        m_language = language;
+        m_language = language.trimmed().isEmpty() ? "English" : language.trimmed();
     }
     bool loadActiveModel();
 
