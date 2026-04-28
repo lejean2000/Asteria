@@ -6,7 +6,7 @@
 #include <QColor>
 #include <QSettings>
 
-namespace GlobalFlags {
+namespace AsteriaGlobals {
 extern bool additionalBodiesEnabled;
 extern QString lastGeneratedChartType;
 extern QString appDir;

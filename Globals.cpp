@@ -2,7 +2,7 @@
 #include<QStandardPaths>
 #include<QApplication>
 
-namespace GlobalFlags {
+namespace AsteriaGlobals {
 bool additionalBodiesEnabled = false;
 QString lastGeneratedChartType = "Natal Birth";
 QString appDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/Asteria";
