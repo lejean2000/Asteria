@@ -397,11 +397,11 @@ bool MistralAPI::loadActiveModel()
     m_apiEndpoint = settings.value("endpoint").toString();
     m_apiKey = settings.value("apiKey").toString();
     m_model = settings.value("modelName").toString();
-    m_temperature = settings.value("temperature", 0.7).toDouble();
-    m_maxTokens = settings.value("maxTokens", 8192).toInt();
+    m_temperature = settings.value("temperature", 0.8).toDouble();
+    m_maxTokens = settings.value("maxTokens", 65536).toInt();
 
-    settings.endGroup();
-    settings.endGroup();
+    settings.endGroup(); // closes "Models/SomeModelName"
+    settings.endGroup(); // closes "Models"
 
     bool result = !m_apiEndpoint.isEmpty() && !m_model.isEmpty();
     AsteriaGlobals::activeModelLoaded = result;
