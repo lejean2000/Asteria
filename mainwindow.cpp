@@ -1309,6 +1309,8 @@ void MainWindow::calculateChart()
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
 
     m_chartRenderer->scene()->clear();
@@ -1738,6 +1740,8 @@ void MainWindow::newChart() {
     // Clear chart and interpretation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentInterpretation.clear();
     m_currentRelationshipInfo = QJsonObject();  // Reset relationship info
 
@@ -1816,6 +1820,13 @@ void MainWindow::saveChart() {
         saveData["relationshipInfo"] = m_currentRelationshipInfo;
     }
 
+    // Check if this is a secondary progression bi-wheel
+    if (!m_currentNatalChartData.isEmpty()) {
+        saveData["natalChartData"]  = m_currentNatalChartData;
+        saveData["progressionYear"] = m_progressionYear;
+        saveData["chartType"]       = QString("secondaryProgression");
+    }
+
     // Save to file
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly)) {
@@ -1869,7 +1880,31 @@ void MainWindow::loadChart() {
             // Load chart data
             if (saveData.contains("chartData") && saveData["chartData"].isObject()) {
                 m_currentChartData = saveData["chartData"].toObject();
-                displayChart(m_currentChartData);
+
+                if (saveData.contains("natalChartData") && saveData["natalChartData"].isObject()) {
+                    // ── Secondary progression bi-wheel ──────────────────────
+                    m_currentNatalChartData = saveData["natalChartData"].toObject();
+                    m_progressionYear       = saveData.value("progressionYear").toInt();
+
+                    ChartData natal      = filterAdditionalBodies(convertJsonToChartData(m_currentNatalChartData));
+                    ChartData progressed = filterAdditionalBodies(convertJsonToChartData(m_currentChartData));
+                    QVector<AspectData> interAspects =
+                        m_chartDataManager.calculateInteraspects(progressed, natal);
+
+                    m_chartRenderer->setDualChartData(natal, progressed, interAspects);
+                    m_chartRenderer->renderChart();
+
+                    m_planetListWidget->updateDualData(natal, progressed);
+                    m_aspectarianWidget->updateDualData(natal, progressed, interAspects);
+                    m_modalityElementWidget->updateDualData(natal, progressed);
+
+                    updateChartDetailsTables(m_currentChartData);
+                    AsteriaGlobals::lastGeneratedChartType = "Secondary Progression";
+                } else {
+                    // ── Regular single chart ────────────────────────────────
+                    displayChart(m_currentChartData);
+                }
+
                 m_chartCalculated = true;
                 m_getInterpretationButton->setEnabled(true);
             }
@@ -1933,6 +1968,8 @@ void MainWindow::loadChart() {
             } else {
                 // Clear any existing relationship info
                 m_currentRelationshipInfo = QJsonObject();
+                m_currentNatalChartData = QJsonObject();
+                m_progressionYear = 0;
 
                 // Set default window title for natal chart
                 QString name = first_name->text();
@@ -4664,6 +4701,8 @@ void MainWindow::doSolarReturnCalculation(const QDate& birthDate, const QTime& b
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
     m_chartRenderer->scene()->clear();
 
@@ -4815,6 +4854,8 @@ void MainWindow::doLunarReturnCalculation(const QDate& birthDate, const QTime& b
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
     m_chartRenderer->scene()->clear();
 
@@ -4964,6 +5005,8 @@ void MainWindow::doSaturnReturnCalculation(const QDate& birthDate, const QTime& 
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -5109,6 +5152,8 @@ void MainWindow::doJupiterReturnCalculation(const QDate& birthDate, const QTime&
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -5243,6 +5288,8 @@ void MainWindow::doVenusReturnCalculation(const QDate& birthDate, const QTime& b
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -5375,6 +5422,8 @@ void MainWindow::doMarsReturnCalculation(const QDate& birthDate, const QTime& bi
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -5507,6 +5556,8 @@ void MainWindow::doMercuryReturnCalculation(const QDate& birthDate, const QTime&
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -5677,6 +5728,8 @@ void MainWindow::doUranusReturnCalculation(const QDate& birthDate, const QTime& 
 
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -5794,6 +5847,8 @@ void MainWindow::doNeptuneReturnCalculation(const QDate& birthDate, const QTime&
 
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -5911,6 +5966,8 @@ void MainWindow::doPlutoReturnCalculation(const QDate& birthDate, const QTime& b
 
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -6060,6 +6117,8 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
     // Reset chart state
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
@@ -6094,8 +6153,10 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
     m_aspectarianWidget->updateDualData(natal, progressed, interAspects);
     m_modalityElementWidget->updateDualData(natal, progressed);
 
-    // Store progressed chart JSON for AI interpretation
-    m_currentChartData = m_chartDataManager.chartDataToJson(progressedRaw);
+    // Store chart JSONs (progressed = AI/detail tables; natal = bi-wheel save/load)
+    m_currentChartData      = m_chartDataManager.chartDataToJson(progressedRaw);
+    m_currentNatalChartData = m_chartDataManager.chartDataToJson(natalRaw);
+    m_progressionYear       = progressionYear;
     updateChartDetailsTables(m_currentChartData);
 
     m_chartCalculated = true;
@@ -6623,6 +6684,8 @@ void MainWindow::calculateCurrentChart()
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
     m_chartRenderer->scene()->clear();
 
@@ -6686,6 +6749,8 @@ void MainWindow::calculateCurrentChart()
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
     m_chartRenderer->scene()->clear();
 
@@ -6771,6 +6836,8 @@ void MainWindow::calculateZodiacSignsChart()
     // Reset chart state before new calculation
     m_chartCalculated = false;
     m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
 
     m_chartRenderer->scene()->clear();
