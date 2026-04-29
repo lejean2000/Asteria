@@ -206,8 +206,7 @@ void ElementModalityWidget::fillGrid(
         signLabels[sign]->setText(labelText);
 
         if (!g_astroFontFamily.isEmpty()) {
-            QFont af("DejaVu Sans", 14);
-            af.setStyleStrategy(QFont::NoFontMerging);
+            QFont af(g_astroFontFamily, 14);
             af.setBold(true);
             signLabels[sign]->setFont(af);
         }
@@ -320,7 +319,7 @@ QString ElementModalityWidget::getPlanetGlyph(const QString &planetId) {
     if (planetId == "Chiron")       return "⚷";
     if (planetId == "North Node")   return "☊";
     if (planetId == "South Node")   return "☋";
-    if (planetId == "Pars Fortuna") return "⊗";
+    if (planetId == "Pars Fortuna") return "⊕";
     if (planetId == "Syzygy")       return "☍";
     if (planetId == "Lilith")       return "⚸";
     if (planetId == "Ceres")        return "⚳";

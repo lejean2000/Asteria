@@ -227,7 +227,7 @@ QString PlanetListWidget::getSymbolForPlanet(const QString &planetId)
     if (planetId == "Chiron") return "⚷";
     if (planetId == "North Node") return "☊";
     if (planetId == "South Node") return "☋";
-    if (planetId == "Pars Fortuna") return "⊗";
+    if (planetId == "Pars Fortuna") return "⊕";
     if (planetId == "Syzygy") return "☍";
     // Additional bodies
     if (planetId == "Lilith") return "⚸";
