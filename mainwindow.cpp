@@ -1699,6 +1699,12 @@ void MainWindow::getInterpretation() {
         }
     }
 
+    qDebug() << "getInterpretation: lastGeneratedChartType=" << AsteriaGlobals::lastGeneratedChartType
+             << "isSecondaryProgression=" << isSecondaryProgression
+             << "natalEmpty=" << m_currentNatalChartData.isEmpty();
+    qDebug() << "getInterpretation: dataToSend="
+             << QString::fromUtf8(QJsonDocument(dataToSend).toJson(QJsonDocument::Compact));
+
     m_interpretationtextEdit->append("Requesting interpretation from AI. This may take minutes...\n");
     m_getInterpretationButton->setEnabled(false);
     statusBar()->showMessage("Requesting interpretation...");
