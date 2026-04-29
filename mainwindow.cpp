@@ -171,6 +171,7 @@ void MainWindow::setupCentralWidget() {
 
     // Create chart renderer
     m_chartRenderer = new ChartRenderer(this);
+    m_chartRenderer->hide(); // scene-only use; m_chartView is the actual display widget
     m_chartView->setScene(m_chartRenderer->scene());
 
 
