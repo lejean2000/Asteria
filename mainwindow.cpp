@@ -522,17 +522,6 @@ void MainWindow::setupInputDock() {
         searchLocationCoordinates(locationSearchEdit->text());
     });
 
-
-
-    // UTC offset combo
-    /*
-    m_utcOffsetCombo = new QComboBox(birthGroup);
-    for (int i = -12; i <= 14; i++) {
-        QString offset = (i >= 0) ? QString("+%1:00").arg(i) : QString("%1:00").arg(i);
-        m_utcOffsetCombo->addItem(offset, offset);
-    }
-    m_utcOffsetCombo->setCurrentText("+00:00");
-    */
     m_utcOffsetCombo = new QComboBox(birthGroup);
 
     // Create a list to hold all offsets
@@ -1581,85 +1570,141 @@ void MainWindow::getInterpretation() {
         return;
     }
 
+    const bool isSecondaryProgression =
+        (AsteriaGlobals::lastGeneratedChartType == "Secondary Progression"
+         && !m_currentNatalChartData.isEmpty());
+
     if (!AsteriaGlobals::activeModelLoaded) {
         m_mistralApi.loadActiveModel();
         if (!AsteriaGlobals::activeModelLoaded) {
-
             QMessageBox::information(this, "AI Model Not Configured",
                                      "No active AI model found. Please go to Settings → Configure AI Models to set up a model.");
             return;
         }
     }
 
-    // Create filtered chart data based on additional bodies checkbox
-    QJsonObject dataToSend = m_currentChartData;
-
-    // Define which bodies are considered "additional"
-    QStringList additionalBodies = {
+    const QStringList additionalBodies = {
         "Ceres", "Pallas", "Juno", "Vesta", "Lilith",
         "Vertex", "Part of Spirit", "East Point"
     };
+    const bool keepAdditional = m_additionalBodiesCB->isChecked();
 
-    // Filter out additional bodies if checkbox is not checked
-    if (!m_additionalBodiesCB->isChecked()) {
-        // Filter planets
-        QJsonArray planets = dataToSend["planets"].toArray();
-        QJsonArray filteredPlanets;
-        for (int i = 0; i < planets.size(); i++) {
-            QJsonObject planet = planets[i].toObject();
-            QString planetId = planet["id"].toString();
-            // Keep the planet if it's not in the additional bodies list
-            if (!additionalBodies.contains(planetId)) {
-                filteredPlanets.append(planet);
+    auto filterPlanets = [&](const QJsonArray &planets) -> QJsonArray {
+        if (keepAdditional) return planets;
+        QJsonArray out;
+        for (const QJsonValue &v : planets) {
+            if (!additionalBodies.contains(v.toObject()["id"].toString()))
+                out.append(v);
+        }
+        return out;
+    };
+
+    auto filterAspectsForBodies = [&](const QJsonArray &aspects) -> QJsonArray {
+        if (keepAdditional) return aspects;
+        QJsonArray out;
+        for (const QJsonValue &v : aspects) {
+            QJsonObject a = v.toObject();
+            if (!additionalBodies.contains(a["planet1"].toString())
+                && !additionalBodies.contains(a["planet2"].toString())) {
+                out.append(a);
             }
         }
-        dataToSend["planets"] = filteredPlanets;
+        return out;
+    };
 
-        // Filter aspects - remove any aspect that involves an additional body
-        QJsonArray aspects = dataToSend["aspects"].toArray();
-        QJsonArray filteredAspects;
-        for (int i = 0; i < aspects.size(); i++) {
-            QJsonObject aspect = aspects[i].toObject();
-            QString planet1 = aspect["planet1"].toString();
-            QString planet2 = aspect["planet2"].toString();
+    QJsonObject dataToSend;
 
-            // Keep the aspect if neither planet is an additional body
-            if (!additionalBodies.contains(planet1) && !additionalBodies.contains(planet2)) {
-                filteredAspects.append(aspect);
+    if (isSecondaryProgression) {
+        // Bi-wheel payload: split natal/progressed sides + both aspect sets.
+        // Aspects restricted to the five major Ptolemaic types.
+        static const QStringList majorAspects = {
+            "Conjunction", "Opposition", "Square", "Trine", "Sextile"
+        };
+        auto keepOnlyMajors = [&](const QJsonArray &aspects) -> QJsonArray {
+            QJsonArray out;
+            for (const QJsonValue &v : aspects) {
+                QJsonObject a = v.toObject();
+                if (majorAspects.contains(a["aspectType"].toString()))
+                    out.append(a);
             }
+            return out;
+        };
+
+        // Recompute progressed×natal interaspects on demand.
+        ChartData natal      = convertJsonToChartData(m_currentNatalChartData);
+        ChartData progressed = convertJsonToChartData(m_currentChartData);
+        QVector<AspectData> interAspects =
+            m_chartDataManager.calculateInteraspects(progressed, natal);
+
+        QJsonArray interAspectsJson;
+        for (const AspectData &a : interAspects) {
+            QJsonObject jo;
+            jo["planet1"]    = toString(a.planet1);
+            jo["planet2"]    = toString(a.planet2);
+            jo["aspectType"] = toString(a.aspectType);
+            jo["orb"]        = a.orb;
+            interAspectsJson.append(jo);
         }
-        dataToSend["aspects"] = filteredAspects;
+
+        // Determine which natal house a given ecliptic longitude falls in.
+        // Mirrors ChartCalculator::findHouse (private, so replicated here).
+        const QJsonArray natalHouses = m_currentNatalChartData["houses"].toArray();
+        auto findNatalHouse = [&](double longitude) -> QString {
+            longitude = fmod(longitude, 360.0);
+            if (longitude < 0.0) longitude += 360.0;
+            for (int i = 0; i < natalHouses.size(); ++i) {
+                int j = (i + 1) % natalHouses.size();
+                double start = natalHouses[i].toObject()["longitude"].toDouble();
+                double end   = natalHouses[j].toObject()["longitude"].toDouble();
+                if (end < start) {
+                    if (longitude >= start || longitude < end)
+                        return natalHouses[i].toObject()["id"].toString();
+                } else {
+                    if (longitude >= start && longitude < end)
+                        return natalHouses[i].toObject()["id"].toString();
+                }
+            }
+            return QStringLiteral("House1");
+        };
+
+        QJsonObject natalJson;
+        natalJson["angles"]  = m_currentNatalChartData["angles"].toArray();
+        natalJson["planets"] = filterPlanets(m_currentNatalChartData["planets"].toArray());
+
+        // Build progressed planets with an extra houseNatal field.
+        QJsonArray progressedPlanets;
+        for (const QJsonValue &v : filterPlanets(m_currentChartData["planets"].toArray())) {
+            QJsonObject p = v.toObject();
+            p["houseNatal"] = findNatalHouse(p["longitude"].toDouble());
+            progressedPlanets.append(p);
+        }
+
+        QJsonObject progressedJson;
+        progressedJson["angles"]  = m_currentChartData["angles"].toArray();
+        progressedJson["planets"] = progressedPlanets;
+
+        dataToSend["natal"]      = natalJson;
+        dataToSend["progressed"] = progressedJson;
+        dataToSend["progressedToNatalAspects"] =
+            keepOnlyMajors(filterAspectsForBodies(interAspectsJson));
+        dataToSend["progressedToProgressedAspects"] =
+            keepOnlyMajors(filterAspectsForBodies(m_currentChartData["aspects"].toArray()));
+    }
+    else {
+        // Single-chart payload (original path).
+        dataToSend = m_currentChartData;
+        if (!keepAdditional) {
+            dataToSend["planets"] = filterPlanets(m_currentChartData["planets"].toArray());
+            dataToSend["aspects"] = filterAspectsForBodies(m_currentChartData["aspects"].toArray());
+        }
     }
 
-    // Show loading message
-    m_interpretationtextEdit->append("Requesting interpretation from AI...\n");
+    m_interpretationtextEdit->append("Requesting interpretation from AI. This may take minutes...\n");
     m_getInterpretationButton->setEnabled(false);
     statusBar()->showMessage("Requesting interpretation...");
 
-    // Request interpretation with filtered data
     m_mistralApi.interpretChart(dataToSend);
 }
-
-/*
-void MainWindow::displayInterpretation(const QString &interpretation)
-{
-    m_currentInterpretation += interpretation;
-    m_interpretationtextEdit->append(
-        "\nChart reading for " + first_name->text() + " " + last_name->text() +
-        " born on " + m_birthDateEdit->text() +
-        " at " + m_birthTimeEdit->text() +
-        " in location " + m_googleCoordsEdit->text() + "\n"
-        );
-    //m_interpretationtextEdit->append("\n" + interpretation);
-    m_interpretationtextEdit->append("\n" + interpretation);
-
-    m_getInterpretationButton->setEnabled(true);
-
-    m_interpretationtextEdit->append("\nReceived interpretation from AI...");
-        statusBar()->showMessage("Interpretation received", 3000);
-}
-*/
-
 
 void MainWindow::displayInterpretation(const QString &interpretation)
 {
@@ -1966,10 +2011,12 @@ void MainWindow::loadChart() {
                                    m_currentRelationshipInfo["displayName"].toString());
                 }
             } else {
-                // Clear any existing relationship info
+                // Clear any existing relationship info.
+                // Do NOT touch m_currentNatalChartData / m_progressionYear here —
+                // they are managed by the chartData branch above. A secondary-
+                // progression save has natalChartData but no relationshipInfo,
+                // so clearing them here would wipe a just-loaded bi-wheel.
                 m_currentRelationshipInfo = QJsonObject();
-                m_currentNatalChartData = QJsonObject();
-                m_progressionYear = 0;
 
                 // Set default window title for natal chart
                 QString name = first_name->text();
@@ -2050,40 +2097,6 @@ void MainWindow::printChart() {
     exportAsPdf();
 #endif
 }
-
-
-
-
-/*
-void MainWindow::showAboutDialog()
-{
-    QString version = QCoreApplication::applicationVersion();
-    QMessageBox::about(this, "About Asteria",
-                       "Asteria - Astrological Chart Analysis\n\n"
-                       "Version 2.1.1\n\n"
-                       "A tool for calculating and interpreting astrological charts "
-                       "with AI-powered analysis.\n\n"
-                       "© 2025 Alamahant");
-}
-*/
-/*
-void MainWindow::showAboutDialog()
-{
-    QString version = QCoreApplication::applicationVersion();
-    QMessageBox::about(
-        this,
-        "About Asteria",
-        QString("Asteria - Astrological Chart Analysis\n\n"
-                "Version %1\n\n"
-                "A tool for calculating and interpreting astrological charts "
-                "with AI-powered analysis.\n"
-                "Available for Linux, Windows, Macos and Flatpak. \n"
-                "https://github.com/alamahant/Asteria/releases/latest\n\n"
-                "© 2025 Alamahant")
-            .arg(version)
-    );
-}
-*/
 
 void MainWindow::showAboutDialog()
 {
@@ -2383,27 +2396,6 @@ void MainWindow::getPrediction() {
     }
 
 }
-
-/*
-void MainWindow::displayTransitInterpretation(const QString &interpretation) {
-    m_currentInterpretation += interpretation;
-
-    statusBar()->showMessage("Transit interpretation requested...", 3000);
-    m_interpretationtextEdit->append("Transit interpretation requested...\n");
-
-    m_interpretationtextEdit->append(
-        "Astrological Prediction reading for " + first_name->text() + " " + last_name->text() +
-        " born on " + m_birthDateEdit->text() +
-        " at " + m_birthTimeEdit->text() +
-        " in location " + m_googleCoordsEdit->text() + " for the period from " +
-        m_predictiveFromEdit->text() + " to " + m_predictiveToEdit->text() + "\n\n" +
-        interpretation + "\n");
-    statusBar()->showMessage("Transit interpretation complete", 3000);
-    m_interpretationtextEdit->append("Transit interpretation received\n");
-    getPredictionButton->setEnabled(true);
-
-}
-*/
 
 void MainWindow::displayTransitInterpretation(const QString &interpretation) {
     m_currentInterpretation += interpretation;
@@ -4109,124 +4101,6 @@ void MainWindow::showChangelog(){
   <li><b>Incompatible Notice:</b> Claude and Gemini not supported (different API formats)</li>
 </ul>
 
-
-<h2>Version 2.1.3 (2026-01-02) <span style='color:#27ae60;'>&mdash; Data Management & Organization Update</span></h2>
-<ul>
-  <li><b>Dedicated Documents Directory:</b> Created a dedicated <code>~/Documents/Asteria</code> directory where all charts and user data are now saved and loaded from for improved accessibility and organization.</li>
-  <li><b>Data Migration Support:</b> Existing user data is not automatically migrated from the previous location. To manually migrate your charts and materials, please open a terminal and run:</li>
-  <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto;">
-cp -a ~/.var/app/io.github.alamahant.Asteria/data/Asteria/* ~/Documents/Asteria/</pre>
-  <li><b>Improved File Management:</b> Simplified chart backup, sharing, and management through standard documents location.</li>
-  <li><b>Cross-Platform Compatibility:</b> Ensures better compatibility with backup systems and cloud synchronization services.</li>
-  <li><b>User Experience Enhancement:</b> More intuitive file access without navigating through hidden application directories.</li>
-</ul>
-
-<h2>Version 2.1.2 (2025-10-29) <span style='color:#27ae60;'>&mdash; Polish & Compatibility Update</span></h2>
-<ul>
-  <li><b>Updated KDE Runtime:</b> Upgraded to KDE Platform 6.9 for enhanced stability and performance across all systems.</li>
-  <li><b>Improved Qt 6.9 Compatibility:</b> Optimized QTableWidget rendering and font handling for the latest Qt framework.</li>
-  <li><b>Western Chart Convention:</b> Chart rendering now places the Ascendant at 9 o'clock position to align with standard Western astrological practices.</li>
-  <li><b>Zodiac Sign Coloring:</b> Planet list widget now displays zodiac signs in their traditional corresponding colors for better visual recognition.</li>
-  <li><b>Code Polish & Optimization:</b> Various code improvements and performance enhancements throughout the application.</li>
-  <li><b>Enhanced Stability:</b> General bug fixes and maintenance improvements for smoother user experience.</li>
-</ul>
-
-<h2>Version 2.1.1 (2025-09-23) <span style='color:#27ae60;'>&mdash; Major Update</span></h2>
-<ul>
-  <li><b>Stunning AI Interpretations:</b> Markdown AI responses are now transformed into rich HTML, producing beautifully formatted, clear, and engaging interpretations—like reading a professional digital publication.</li>
-  <li><b>Smarter Chart Tagging:</b> All chart types (Natal, Relationship, Progression, Return, Zodiac Signs) now carry unique tags, so AI provides context-specific interpretations. <b>Exception:</b> Composite charts are excluded for accuracy.</li>
-  <li><b>New Zodiac Sign Chart:</b> Generates magazine-style horoscopes for all 12 signs for any chosen date/time.</li>
-  <li><b>Multi-Window Support:</b> Open multiple Asteria windows via File → New Window, either in the same instance or as new instances. Charts can also be opened in new windows for comparison.</li>
-  <li><b>Drag-and-Drop Between Windows:</b> Use Ctrl+Left-Click to drag charts into another Asteria window (input or interpretation docks) to load all chart data instantly.</li>
-  <li><b>Enhanced Viewing Options:</b> View menu checkboxes to toggle Chart-Only view or Info Overlay visibility (hidden by default).</li>
-  <li><b>Clear Interpretation Button:</b> Clears both displayed interpretation and stored previous readings in one click.</li>
-  <li><b>Chart Zoom in/out Functionality:</b> Use CTRL+mouse wheel to zoom in and out of generated chart.</li>
-</ul>
-
-<h2>Version 2.1.0 (2025-07-14) <span style='color:#27ae60;'>&mdash; Major Release</span></h2>
-<ul>
-  <li><b>Rendering System Overhaul:</b> Redesigned the chart rendering engine—now all chart elements are drawn in an <b>anticlockwise</b> direction for improved astrological convention and clarity.</li>
-  <li><b>Return Charts for All Major Planets:</b> Added support for calculating and displaying return charts for all basic planets (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto).</li>
-  <li><b>Secondary Progression Charts:</b> Introduced secondary progression chart calculation and display.</li>
-  <li><b>Eclipse Calculations:</b> Added functionality to calculate both lunar and solar eclipses.</li>
-  <li><b>Transits Calculation Enhancements:</b>
-    <ul>
-      <li>Added a new method and UI button to calculate planetary transits for any chart over a period of up to one year.</li>
-      <li>Introduced an advanced transit search dialog, allowing users to filter transits by date, transiting planet, aspect, natal planet, orb, and to apply exclusion filters for precise results.</li>
-    </ul>
-  </li>
-  <li><b>Julian/Gregorian Calendar Toggle:</b> Implemented a settings menu checkbox to toggle between Julian and Gregorian calendars for dates prior to 1582, ensuring historical accuracy.</li>
-  <li><b>Chart Type Flag for Transits:</b> Each calculated transit now includes a chart type flag, which is also passed to the AI interpretation prompt for more targeted and context-aware readings.</li>
-  <li><b>Date Range Expansion:</b> Extended the allowed date span for chart and transit calculations to 0001–3000 CE (excluding BCE years due to QDate limitations).</li>
-  <li><b>Export Chart Data:</b> Added an option to export all chart data as text, saving the contents of every table in the "Chart Details" tab for easy sharing and analysis.</li>
-  <li><b>Angles Table:</b> Added a new Angles table displaying the values of ASC (Ascendant), DESC (Descendant), IC (Imum Coeli), and MC (Medium Coeli).</li>
-  <li><b>SQQ Aspect:</b> Added the SQQ (Sesquiquadrate, 135°) aspect to aspect calculations and filtering.</li>
-  <li><b>General Improvements & Bug Fixes:</b> Various minor UI polishes, bug fixes, and code optimizations for a smoother user experience.</li>
-</ul>
-
-<h2>Version 2.0.1 (2025-06-06)</h2>
-<h3>Improvements</h3>
-<ul>
-<li>Changed degree display format from 0-360° decimal system to traditional in-sign degrees with minutes for improved astrological readability (e.g., 285.5° → 15°30' Capricorn)</li>
-<li>House display now shows both formats for reference</li>
-</ul>
-<p><b style="color: #d35400;">Important Note:</b> Charts calculated and saved with the old degree format will not display correctly with this update. To fix this, please reload your saved charts, press the "Calculate Chart" button again, and save them with the new format.</p>
-
-<h2>Version 2.0.0 (2025-05-15)</h2>
-<h3>Major Improvements</h3>
-<ul>
-<li>Completely rebuilt the calculation engine: removed Python dependency, virtual environment, flatlib, and all related scripts</li>
-<li>Now using direct Swiss Ephemeris integration through native Qt/C++ code for significantly improved performance and reduced complexity</li>
-</ul>
-<h3>New Features</h3>
-<ul>
-<li>Added an orb slider to set how many aspects are calculated and displayed</li>
-<li>Added additional celestial bodies to be calculated and displayed:
-  <ul>
-    <li>Black Moon Lilith</li>
-    <li>Ceres</li>
-    <li>Pallas</li>
-    <li>Juno</li>
-    <li>Vesta</li>
-    <li>Vertex</li>
-    <li>East Point</li>
-    <li>Part of Spirit</li>
-  </ul>
-</li>
-<li>Added a checkbox to toggle displaying additional bodies in the chart</li>
-<li>Added Aspect Display Settings Dialog where users can customize the thickness and style of major and minor aspects</li>
-<li>Added relationship charts functionality with Composite and Davison charts (synastry to be implemented in a future release)</li>
-</ul>
-<h3>Performance Improvements</h3>
-<ul>
-<li>Preloaded OpenStreetMap QML at application startup to eliminate pause when opening the map dialog</li>
-</ul>
-<h3>Changes</h3>
-<ul>
-<li>Updated license to AGPL-3 to conform with Swiss Ephemeris requirements (see credits.txt for full attribution)</li>
-</ul>
-
-<h2>Version 1.1.0 (2025-04-30)</h2>
-<h3>New Features</h3>
-<ul>
-<li>Added <a href="https://www.openstreetmap.org/">OpenStreetMap</a> dialog to assist users in easily searching and setting their birth location</li>
-<li>Expanded retrograde planet depiction beyond the planets drawn red on the chart itself and the tooltips, to also include the planet widgets, planet view, and aspects view</li>
-</ul>
-<h3>Improvements</h3>
-<ul>
-<li>Made minor UI improvements for better usability</li>
-<li>Added multiple screenshots to better showcase the application's features</li>
-<li>Edited application summary to conform with Flathub quality guidelines</li>
-</ul>
-
-<h2>Version 1.0.0 (2025-04-22)</h2>
-<h3>Initial Release</h3>
-<ul>
-<li>Natal chart calculation and display</li>
-<li>Aspect analysis</li>
-<li>AI-powered interpretations</li>
-<li>Transit calculations</li>
-</ul>
 )";
 
         textBrowser->setHtml(changelogText);
@@ -6431,39 +6305,6 @@ void MainWindow::toggleChartOnlyView(bool chartOnly)
     }
 }
 
-//event filter for drad-drop
-/*
-bool MainWindow::eventFilter(QObject *obj, QEvent *event)
-{
-    // Only handle events from the chart view's viewport
-    if (obj == m_chartView->viewport()) {
-        if (event->type() == QEvent::MouseButtonPress) {
-            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-            if ((mouseEvent->buttons() & Qt::LeftButton) &&
-                (QApplication::keyboardModifiers() & Qt::ControlModifier)) {
-                // Store the starting position for drag operation
-                m_dragStartPosition = mouseEvent->pos();
-                return true;
-            }
-        }
-        else if (event->type() == QEvent::MouseMove) {
-            QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
-            if ((mouseEvent->buttons() & Qt::LeftButton) &&
-                (QApplication::keyboardModifiers() & Qt::ControlModifier)) {
-                // Check if we've moved enough to start a drag (minimum drag distance)
-                if ((mouseEvent->pos() - m_dragStartPosition).manhattanLength()
-                    >= QApplication::startDragDistance()) {
-                    // Start the drag operation
-                    startChartDrag();
-                    return true;
-                }
-            }
-        }
-    }
-    // Let other events be handled normally
-    return QMainWindow::eventFilter(obj, event);
-}
-*/
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
@@ -6656,142 +6497,6 @@ QString MainWindow::markdownToHtml(const QString &markdown)
     //return "<html><body>" + html + "</body></html>";
     return html;
 }
-
-/*
-void MainWindow::calculateCurrentChart()
-{
-    // Use current date and time
-    QDate currentDate = QDate::currentDate();
-    QTime currentTime = QTime::currentTime();
-
-    // Format as in original fields
-    QString dateText = currentDate.toString("dd/MM/yyyy");
-    QString timeText = currentTime.toString("HH:mm");
-
-    // Get longitude and latitude from the fields
-    QString latitude = m_latitudeEdit->text();
-    QString longitude = m_longitudeEdit->text();
-
-    // Validate inputs
-    if (latitude.isEmpty() || longitude.isEmpty()) {
-        QMessageBox::warning(this, "Input Error", "Please enter latitude and longitude.");
-        return;
-    }
-
-    QString utcOffset = m_utcOffsetCombo->currentText();
-    QString houseSystem = m_houseSystemCombo->currentText();
-
-    // Reset chart state before new calculation
-    m_chartCalculated = false;
-    m_currentChartData = QJsonObject();
-    m_currentNatalChartData = QJsonObject();
-    m_progressionYear = 0;
-    m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
-    m_chartRenderer->scene()->clear();
-
-    // Convert formatted date/time back to QDate/QTime for calculation
-    QDate birthDate = QDate::fromString(dateText, "dd/MM/yyyy");
-    QTime birthTime = QTime::fromString(timeText, "HH:mm");
-
-    birthDate = checkAndConvertJulian(birthDate, useJulianForPre1582Action->isChecked());
-
-    m_currentChartData = m_chartDataManager.calculateChartAsJson(
-                birthDate, birthTime, utcOffset, latitude, longitude, houseSystem);
-
-    if (m_chartDataManager.getLastError().isEmpty()) {
-
-        // Display chart
-        displayChart(m_currentChartData);
-        m_chartCalculated = true;
-
-        // Fill name fields with no/ name
-        first_name->setText("no");
-        last_name->setText("name");
-        m_birthDateEdit->setText(currentDate.toString("dd/MM/yyyy"));
-        m_birthTimeEdit->setText(currentTime.toString("HH:mm"));
-        // Store in global flags
-        AsteriaGlobals::lastGeneratedChartType = "Current Zodiac";
-
-        m_getInterpretationButton->setEnabled(true);
-        getPredictionButton->setEnabled(true);
-        getTransitsButton->setEnabled(true);
-
-        statusBar()->showMessage("Current chart calculated successfully", 3000);
-    } else {
-        handleError("Chart calculation error: " + m_chartDataManager.getLastError());
-        m_chartCalculated = false;
-        m_getInterpretationButton->setEnabled(false);
-        getPredictionButton->setEnabled(false);
-        m_chartRenderer->scene()->clear();
-    }
-}
-*/
-/*
-void MainWindow::calculateCurrentChart()
-{
-    // Use current date and time
-    QDate currentDate = QDate::currentDate();
-    QTime currentTime = QTime::currentTime();
-
-    // Get longitude and latitude from the fields
-    QString latitude = m_latitudeEdit->text();
-    QString longitude = m_longitudeEdit->text();
-
-    // Validate inputs
-    if (latitude.isEmpty() || longitude.isEmpty()) {
-        QMessageBox::warning(this, "Input Error", "Please enter latitude and longitude.");
-        return;
-    }
-
-    QString utcOffset = m_utcOffsetCombo->currentText();
-    QString houseSystem = m_houseSystemCombo->currentText();
-
-    // Reset chart state before new calculation
-    m_chartCalculated = false;
-    m_currentChartData = QJsonObject();
-    m_currentNatalChartData = QJsonObject();
-    m_progressionYear = 0;
-    m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
-    m_chartRenderer->scene()->clear();
-
-    // Convert Julian date if needed
-    QDate birthDate = checkAndConvertJulian(currentDate, useJulianForPre1582Action->isChecked());
-    QTime birthTime = currentTime;
-
-    // Calculate chart
-    m_currentChartData = m_chartDataManager.calculateChartAsJson(
-                birthDate, birthTime, utcOffset, latitude, longitude, houseSystem);
-
-    if (m_chartDataManager.getLastError().isEmpty()) {
-
-        // Display chart
-        displayChart(m_currentChartData);
-        m_chartCalculated = true;
-
-        // Fill name and date/time fields
-        first_name->setText("no");
-        last_name->setText("name");
-        m_birthDateEdit->setText(currentDate.toString("dd/MM/yyyy"));
-        m_birthTimeEdit->setText(currentTime.toString("HH:mm"));
-
-        // Set chart type for interpretation
-        AsteriaGlobals::lastGeneratedChartType = "Zodiac Signs";
-
-        // Enable interpretation buttons
-        m_getInterpretationButton->setEnabled(true);
-        getPredictionButton->setEnabled(true);
-        getTransitsButton->setEnabled(true);
-
-        statusBar()->showMessage("Current chart calculated successfully", 3000);
-    } else {
-        handleError("Chart calculation error: " + m_chartDataManager.getLastError());
-        m_chartCalculated = false;
-        m_getInterpretationButton->setEnabled(false);
-        getPredictionButton->setEnabled(false);
-        m_chartRenderer->scene()->clear();
-    }
-}
-*/
 
 
 void MainWindow::calculateZodiacSignsChart()

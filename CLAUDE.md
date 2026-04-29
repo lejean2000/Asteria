@@ -4,6 +4,17 @@ Astrological chart calculator and AI interpreter. Built with Qt6/C++17 on Window
 
 ---
 
+## Workflow
+
+**Do not work in git worktrees on this project.** Edit directly in the main checkout at `C:\Users\ivan\git\Asteria\`. Reasons:
+
+- The build dir (`build/`) is configured against the main checkout, so edits made in a worktree don't get rebuilt — `cmake --build` reports "no work to do" against unchanged main-checkout sources.
+- On Windows, the shell session that hosts Claude Code holds a handle on its CWD. If that CWD is inside a worktree, `git worktree remove` cannot delete the directory until the session exits.
+
+Do not spawn shells (Bash / PowerShell) inside `.claude/worktrees/...`. Always run commands against the main checkout via absolute paths or `git -C C:/Users/ivan/git/Asteria`.
+
+---
+
 ## Build System
 
 **Toolchain:** MSVC 2022 (BuildTools), Qt 6.11.0, CMake + Ninja  
@@ -142,6 +153,19 @@ All types set `AsteriaGlobals::lastGeneratedChartType` before rendering:
 - Zodiac Signs (world chart, no birth data)
 - Transits (separate flow — uses `interpretTransits` not `interpretChart`)
 - Eclipses
+
+### Secondary Progression save file layout
+
+The `.astr` save file for a bi-wheel contains these top-level keys:
+
+| Key | Contents |
+|---|---|
+| `chartData` | Progressed chart (planets, angles, houses, aspects). `chartData.aspects` = **progressed × progressed** — the "Prog → Prog" aspectarian tab. |
+| `natalChartData` | Natal chart. `natalChartData.aspects` = natal × natal (not displayed directly). |
+| `progressionYear` | Integer year used to offset the natal date. |
+| *(no key)* | **Progressed × natal interaspects** ("Prog → Natal" tab) are **not saved** — recomputed on load via `calculateInteraspects(progressed, natal)`. In each `AspectData`, `planet1` = progressed planet, `planet2` = natal planet. Sent to AI as `progressedToNatalAspects`. |
+
+`m_currentNatalChartData` is empty for all non-bi-wheel charts. The load function checks for `natalChartData` first; the subsequent `relationshipInfo` else-branch must **not** clear `m_currentNatalChartData`/`m_progressionYear` — those are already set by the time that branch runs.
 
 ---
 
