@@ -1565,6 +1565,24 @@ void MainWindow::updateChartDetailsTables(const QJsonObject &chartData)
 }
 
 
+static QJsonValue roundJsonDoubles(const QJsonValue &val) {
+    if (val.isDouble())
+        return QJsonValue(qRound(val.toDouble() * 10.0) / 10.0);
+    if (val.isObject()) {
+        QJsonObject obj = val.toObject();
+        for (auto it = obj.begin(); it != obj.end(); ++it)
+            obj[it.key()] = roundJsonDoubles(it.value());
+        return obj;
+    }
+    if (val.isArray()) {
+        QJsonArray arr = val.toArray();
+        for (int i = 0; i < arr.size(); ++i)
+            arr[i] = roundJsonDoubles(arr[i]);
+        return arr;
+    }
+    return val;
+}
+
 void MainWindow::getInterpretation() {
     if (!m_chartCalculated) {
         QMessageBox::warning(this, "No Chart", "Please calculate a chart first.");
@@ -1699,6 +1717,8 @@ void MainWindow::getInterpretation() {
             dataToSend["aspects"] = filterAspectsForBodies(m_currentChartData["aspects"].toArray());
         }
     }
+
+    dataToSend = roundJsonDoubles(dataToSend).toObject();
 
     qDebug() << "getInterpretation: lastGeneratedChartType=" << AsteriaGlobals::lastGeneratedChartType
              << "isSecondaryProgression=" << isSecondaryProgression
@@ -1872,11 +1892,12 @@ void MainWindow::saveChart() {
         saveData["relationshipInfo"] = m_currentRelationshipInfo;
     }
 
+    saveData["chartType"] = AsteriaGlobals::lastGeneratedChartType;
+
     // Check if this is a secondary progression bi-wheel
     if (!m_currentNatalChartData.isEmpty()) {
         saveData["natalChartData"]  = m_currentNatalChartData;
         saveData["progressionYear"] = m_progressionYear;
-        saveData["chartType"]       = QString("secondaryProgression");
     }
 
     // Save to file
@@ -1954,6 +1975,8 @@ void MainWindow::loadChart() {
                     AsteriaGlobals::lastGeneratedChartType = "Secondary Progression";
                 } else {
                     // ── Regular single chart ────────────────────────────────
+                    AsteriaGlobals::lastGeneratedChartType =
+                        saveData.value("chartType").toString("Natal Birth");
                     displayChart(m_currentChartData);
                 }
 
