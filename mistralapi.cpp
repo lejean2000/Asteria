@@ -212,7 +212,9 @@ static QString loadSystemPromptFromResource(const QString &chartType)
         return content;
     };
     QString name = QString(chartType).replace(' ', '_');
-    QString content = tryLoad(QString(":/resources/%1.md").arg(name));
+    QString specificPath = QString(":/resources/%1.md").arg(name);
+    QString content = tryLoad(specificPath);
+    qDebug() << "loadSystemPromptFromResource: tried" << specificPath << "found:" << !content.isEmpty();
     if (content.isEmpty())
         content = tryLoad(":/resources/Default.md");
     return content;

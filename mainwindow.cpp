@@ -1976,7 +1976,7 @@ void MainWindow::loadChart() {
                 } else {
                     // ── Regular single chart ────────────────────────────────
                     AsteriaGlobals::lastGeneratedChartType =
-                        saveData.value("chartType").toString("Natal Birth");
+                        saveData.value("chartType").toString("Natal Birth").replace('-', ' ');
                     displayChart(m_currentChartData);
                 }
 
@@ -2931,7 +2931,7 @@ QString MainWindow::getFilepath(const QString &format)
 
     QString currentDate = QDate::currentDate().toString("yyyy-MM-dd");
     QString currentTime = QTime::currentTime().toString("HHmm");
-    QString chartTypeSanitized = AsteriaGlobals::lastGeneratedChartType.replace(" ", "-");
+    QString chartTypeSanitized = QString(AsteriaGlobals::lastGeneratedChartType).replace(" ", "-");
     QString baseName = QString("%1-%2-%3-%4-%5-chart").arg(chartTypeSanitized, name, surname, currentDate, currentTime);
     QString defaultFilename = QString("%1.%2").arg(baseName, format);
     QString defaultPath = appDir + "/" + defaultFilename;
