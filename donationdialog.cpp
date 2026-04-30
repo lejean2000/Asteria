@@ -43,23 +43,6 @@ void DonationDialog::setupUI()
         "paypal.me/Alamahant"
     ));
 
-    // Support enables section - NOW VISIBLE
-    QLabel *supportEnablesLabel = new QLabel(
-        R"(
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0; font-size: 14px; color: #2c3e50; font-weight: bold; line-height: 1.5;">
-                    <strong style="font-size: 15px;">✨ Your support enables:</strong><br>
-                    • New features and improvements<br>
-                    • Bug fixes and maintenance<br>
-                    • Future updates and compatibility
-                </p>
-            </div>
-        )"
-    );
-    supportEnablesLabel->setTextFormat(Qt::RichText);
-    supportEnablesLabel->setWordWrap(true);
-    layout->addWidget(supportEnablesLabel);
-
     // Spacer
     layout->addStretch();
 

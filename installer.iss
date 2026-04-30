@@ -9,6 +9,7 @@ OutputBaseFilename=AsteriaL_0.9_Setup
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
+SetupIconFile=icons\asteria-l.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -22,8 +23,8 @@ Source: "deploy\share\Asteria\ephemeris\*"; DestDir: "{app}\share\Asteria\epheme
 Source: "deploy\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Icons]
-Name: "{group}\Asteria"; Filename: "{app}\Asteria.exe"
-Name: "{commondesktop}\Asteria"; Filename: "{app}\Asteria.exe"
+Name: "{group}\Asteria L"; Filename: "{app}\Asteria.exe"; IconFilename: "{app}\Asteria.exe"
+Name: "{commondesktop}\Asteria L"; Filename: "{app}\Asteria.exe"; IconFilename: "{app}\Asteria.exe"
 
 [Run]
 ; Install MSVC runtime silently first

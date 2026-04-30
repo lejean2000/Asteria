@@ -192,6 +192,10 @@ if(${QT_VERSION} VERSION_LESS 6.1.0)
     set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER io.github.alamahant.Asteria)
 endif()
 
+if(WIN32)
+    target_sources(Asteria PRIVATE app.rc)
+endif()
+
 set_target_properties(Asteria PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
