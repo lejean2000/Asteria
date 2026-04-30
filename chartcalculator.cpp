@@ -60,6 +60,7 @@ bool ChartCalculator::initialize()
 #else
         // Standard locations for non-Flatpak builds
     searchPaths << QCoreApplication::applicationDirPath() + "/ephemeris"
+                << QCoreApplication::applicationDirPath() + "/share/Asteria/ephemeris"
                 << QCoreApplication::applicationDirPath() + "/../share/Asteria/ephemeris"
                 << "/app/share/Asteria/ephemeris"
                 << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/ephemeris";
