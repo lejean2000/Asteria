@@ -5,6 +5,8 @@
 #include <QNetworkRequest>
 #include <QJsonArray>
 #include <QDebug>
+#include <QDate>
+#include <QRegularExpression>
 #include <cmath>
 #include"Globals.h"
 
@@ -163,6 +165,73 @@ QString MistralAPI::getLastError() const
 
 ///////////////////////Predictions
 
+QJsonArray MistralAPI::buildGroupedTransitJson(const QString &rawTransitData) const
+{
+    static const QMap<QString, QString> majorAspects = {
+        {"Conjunction", "CON"}, {"Opposition", "OPP"},
+        {"Trine", "TRI"}, {"Square", "SQR"}, {"Sextile", "SEX"}
+    };
+    static const QRegularExpression dateLineRe(R"(^(\d{4}/\d{2}/\d{2}): (.*)$)");
+    static const QRegularExpression aspectRe(
+        "((?:North|South) Node|Pars Fortuna|Part of Spirit|East Point|\\w+)"
+        "(?:\\s+\\(R\\))? (\\w+) "
+        "((?:North|South) Node|Pars Fortuna|Part of Spirit|East Point|\\w+(?:\\s+\\(R\\))?)"
+        " \\(([\\d.]+)°\\)");
+
+    struct GroupMeta { QString transitPlanet, natalPlanet, aspect; };
+    QMap<QString, GroupMeta> groupMeta;
+    QMap<QString, QMap<QString, QString>> groupDates;
+    QList<QString> keyOrder;
+
+    bool inSection = false;
+    for (const QString &line : rawTransitData.split('\n', Qt::SkipEmptyParts)) {
+        if (line.startsWith("---TRANSITS---")) { inSection = true; continue; }
+        if (!inSection) continue;
+
+        auto dateMatch = dateLineRe.match(line);
+        if (!dateMatch.hasMatch()) continue;
+
+        QString date = QDate::fromString(dateMatch.captured(1), "yyyy/MM/dd").toString("yyyy-MM-dd");
+
+        for (const QString &token : dateMatch.captured(2).split(',', Qt::SkipEmptyParts)) {
+            auto m = aspectRe.match(token.trimmed());
+            if (!m.hasMatch()) continue;
+
+            QString transitPlanet = m.captured(1);
+            QString aspectName    = m.captured(2);
+            QString natalPlanet   = m.captured(3);
+            if (natalPlanet.endsWith(" (R)")) natalPlanet.chop(4);
+            double orb = m.captured(4).toDouble();
+
+            if (!majorAspects.contains(aspectName) || orb > 5.0) continue;
+
+            QString abbrev = majorAspects[aspectName];
+            QString key = transitPlanet + "|" + natalPlanet + "|" + abbrev;
+
+            if (!groupDates.contains(key)) {
+                keyOrder.append(key);
+                groupMeta[key] = {transitPlanet, natalPlanet, abbrev};
+            }
+            groupDates[key][date] = QString::number(orb, 'f', 2);
+        }
+    }
+
+    QJsonArray result;
+    for (const QString &key : keyOrder) {
+        const auto &meta = groupMeta[key];
+        QJsonObject obj;
+        obj["transit_planet"] = meta.transitPlanet;
+        obj["natal_planet"]   = meta.natalPlanet;
+        obj["aspect"]         = meta.aspect;
+        QJsonObject dateOrb;
+        for (auto it = groupDates[key].constBegin(); it != groupDates[key].constEnd(); ++it)
+            dateOrb[it.key()] = it.value();
+        obj["date_orb"] = dateOrb;
+        result.append(obj);
+    }
+    return result;
+}
+
 void MistralAPI::interpretTransits(const QJsonObject &transitData) {
     if (m_requestInProgress) {
         m_lastError = "A request is already in progress";
@@ -171,22 +240,23 @@ void MistralAPI::interpretTransits(const QJsonObject &transitData) {
     }
 
     if (!AsteriaGlobals::activeModelLoaded) {
-        m_lastError = "No active AI model configured. Please configure one in Settings → Configure AI Models.";;
+        m_lastError = "No active AI model configured. Please configure one in Settings → Configure AI Models.";
         emit error(m_lastError);
         return;
     }
 
-    // Create the prompt for Mistral
     QJsonObject prompt = createTransitPrompt(transitData);
+    // createTransitPrompt already logs the system prompt (first 120 chars)
+    QString userContent = prompt["messages"].toArray()[1].toObject()["content"].toString();
+    qDebug() << "interpretTransits: user message:" << userContent;
 
-    // Prepare the network request
+    QJsonDocument doc(prompt);
+    QByteArray data = doc.toJson(QJsonDocument::Compact);
+
     QUrl url(m_apiEndpoint);
     QNetworkRequest request{url};
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Authorization", QString("Bearer %1").arg(m_apiKey).toUtf8());
-
-    QJsonDocument doc(prompt);
-    QByteArray data = doc.toJson(QJsonDocument::Compact);
 
     qDebug() << "interpretTransits: POST to" << m_apiEndpoint << "model=" << m_model
              << "payload size=" << data.size() << "bytes";
@@ -194,7 +264,6 @@ void MistralAPI::interpretTransits(const QJsonObject &transitData) {
     QNetworkReply *reply = m_networkManager->post(request, data);
     reply->setProperty("isTransitRequest", true);
     m_requestInProgress = true;
-
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -295,94 +364,59 @@ QJsonObject MistralAPI::createPrompt(const QJsonObject &chartData) {
 }
 
 QJsonObject MistralAPI::createTransitPrompt(const QJsonObject &transitData) {
-    // Create the messages array for the chat completion
-    QJsonArray messages;
+    // System prompt from resource file (Transits.md → Default.md fallback)
+    QString systemContent = loadSystemPromptFromResource(AsteriaGlobals::lastGeneratedChartType)
+        + QString("\n\nIMPORTANT: Format the output in Markdown or plain text in %1. "
+                  "Do NOT output JSON, XML, YAML, or any other structured data formats.")
+              .arg(m_language);
+    if (m_language != "English")
+        systemContent += QString(" Your entire response must be in %1.").arg(m_language);
 
-    // System message to instruct the model
+    qDebug() << "createTransitPrompt: chartType=" << AsteriaGlobals::lastGeneratedChartType
+             << "systemPrompt(first 120 chars)=" << systemContent.left(120);
+
     QJsonObject systemMessage;
     systemMessage["role"] = "system";
+    systemMessage["content"] = systemContent;
 
-    // Base content with dates
-    QString baseContent = QString("You are an expert astrologer providing detailed and insightful "
-                                  "interpretations of planetary transits on %1 charts. The data provided contains "
-                                  "transits for EACH DAY from %2 to %3 (a full %4-day period). "
-                                  "Analyze the ENTIRE PERIOD, not just the first day. "
-                                  "\n\nProvide a comprehensive reading covering the significant transits "
-                                  "throughout this period, their exact dates of occurrence, their meanings, "
-                                  "and potential effects on the individual's life. "
-                                  "\n\nBegin with an overview of the major themes for this period. Then analyze "
-                                  "how the transits evolve and develop over time, noting important dates when "
-                                  "aspects perfect (reach 0° orb) or when multiple significant transits occur "
-                                  "simultaneously. "
-                                  "\n\nPay special attention to: "
-                                  "\n- Outer planet transits (Jupiter through Pluto) to personal planets "
-                                  "\n- Transits to angles (Ascendant, Midheaven) "
-                                  "\n- Transits that perfect (reach exact aspect) during this period "
-                                  "\n- Transits that repeat due to retrograde motion "
-                                  "\n\nOrganize your response as a COHERENT NARRATIVE with clear sections for "
-                                  "different themes or time periods. Conclude with practical "
-                                  "advice for navigating these energies."
-                                  "IMPORTANT: Your entire response must be in Markdown or plain text only. "
-                                  "Do NOT output JSON, XML, YAML, or any other structured data formats.")
-                              .arg(AsteriaGlobals::lastGeneratedChartType)
-                              .arg(transitData["transitStartDate"].toString())
-                              .arg(QDate::fromString(transitData["transitStartDate"].toString(), "yyyy/MM/dd")
-                                       .addDays(transitData["numberOfDays"].toInt() - 1)
-                                       .toString("yyyy/MM/dd"))
-                              .arg(transitData["numberOfDays"].toInt());
+    // Build compact combined JSON (major aspects ≤5° grouped by transit, natal context)
+    QJsonArray grouped = buildGroupedTransitJson(transitData["rawTransitData"].toString());
+    QJsonObject natalObj;
+    if (transitData.contains("natalPlanets")) natalObj["planets"] = transitData["natalPlanets"];
+    if (transitData.contains("natalAngles"))  natalObj["angles"]  = transitData["natalAngles"];
+    QJsonObject combined;
+    combined["transits"] = grouped;
+    combined["natal"]    = natalObj;
+    QString compactJson = QString::fromUtf8(QJsonDocument(combined).toJson(QJsonDocument::Compact));
 
-    // Add language instruction if not English
-    if (m_language != "English") {
-        systemMessage["content"] = baseContent + QString(" IMPORTANT: Your entire response must be in %1.")
-        .arg(m_language);
-    } else {
-        systemMessage["content"] = baseContent;
-    }
+    // Compute period string
+    QString startDate = transitData["transitStartDate"].toString();
+    QString endDate   = QDate::fromString(startDate, "yyyy-MM-dd")
+                            .addDays(transitData["numberOfDays"].toString().toInt() - 1)
+                            .toString("yyyy-MM-dd");
 
-    messages.append(systemMessage);
+    // User message: short prefix + compact JSON payload
+    QString userText = m_language != "English"
+        ? QString("Prepare transit interpretation in %1 based on the following natal and transit data "
+                  "for period %2 to %3: ").arg(m_language, startDate, endDate)
+        : QString("Prepare transit interpretation based on the following natal and transit data "
+                  "for period %1 to %2: ").arg(startDate, endDate);
+    userText += compactJson;
 
-    // User message with the transit data
     QJsonObject userMessage;
     userMessage["role"] = "user";
+    userMessage["content"] = userText;
 
-    // Extract the raw transit data from the JSON
-    QString rawTransitData = transitData["rawTransitData"].toString();
-
-    // Create the prompt with the raw data
-    QString prompt;
-    if (m_language != "English") {
-        prompt = QString("Please interpret these astrological transits in %1 for a person born on %2 at %3, "
-                         "at latitude %4 and longitude %5. The transits cover the period from %6 for %7 days:\n\n%8")
-                     .arg(m_language)
-                     .arg(transitData["birthDate"].toString())
-                     .arg(transitData["birthTime"].toString())
-                     .arg(transitData["latitude"].toString())
-                     .arg(transitData["longitude"].toString())
-                     .arg(transitData["transitStartDate"].toString())
-                     .arg(transitData["numberOfDays"].toString())
-                     .arg(rawTransitData);
-    } else {
-        prompt = QString("Please interpret these astrological transits for a person born on %1 at %2, "
-                         "at latitude %3 and longitude %4. The transits cover the period from %5 for %6 days:\n\n%7")
-                     .arg(transitData["birthDate"].toString())
-                     .arg(transitData["birthTime"].toString())
-                     .arg(transitData["latitude"].toString())
-                     .arg(transitData["longitude"].toString())
-                     .arg(transitData["transitStartDate"].toString())
-                     .arg(transitData["numberOfDays"].toString())
-                     .arg(rawTransitData);
-    }
-
-    userMessage["content"] = prompt;
+    QJsonArray messages;
+    messages.append(systemMessage);
     messages.append(userMessage);
 
-    // Create the complete request object
     QJsonObject requestObj;
-    requestObj["model"] = m_model;
-    requestObj["messages"] = messages;
+    requestObj["model"]       = m_model;
+    requestObj["messages"]    = messages;
     requestObj["temperature"] = m_temperature;
-    requestObj["max_tokens"] = m_maxTokens;
-    requestObj["stream"] = false;
+    requestObj["max_tokens"]  = m_maxTokens;
+    requestObj["stream"]      = false;
 
     return requestObj;
 }

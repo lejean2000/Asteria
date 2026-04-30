@@ -6,6 +6,7 @@
         <file>resources/Davison_Relationship.md</file>
 		<file>resources/Natal_Birth.md</file>
         <file>resources/Default.md</file>
+        <file>resources/Transits.md</file>
         <file>icons/asteria-icon-512.png</file>
         <file>map.qml</file>
     </qresource>

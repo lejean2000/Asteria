@@ -45,6 +45,8 @@ TransitSearchDialog::TransitSearchDialog(QWidget *parent) : QDialog(parent)
 
     m_aspectFilter->setPlaceholderText("Filter by aspect");
     m_aspectFilter->setToolTip("Filter by aspect types. Examples:\n"
+                               "KEYWORD:\n"
+                               "• MAJOR - show all 5 major aspects\n"
                                "MAJOR ASPECTS:\n"
                                "• CON (Conjunction 0°) - fusion, new beginnings\n"
                                "• OPP (Opposition 180°) - tension, awareness, balance\n"

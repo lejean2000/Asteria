@@ -2417,6 +2417,14 @@ void MainWindow::getPrediction() {
         //populate tab
         displayRawTransitData(transitData);
 
+        // Attach natal planets/angles so the AI has the birth chart context
+        if (m_currentChartData.contains("planets"))
+            transitData["natalPlanets"] = m_currentChartData["planets"];
+        if (m_currentChartData.contains("angles"))
+            transitData["natalAngles"] = m_currentChartData["angles"];
+
+        AsteriaGlobals::lastGeneratedChartType = "Transits";
+
         // Send to API for interpretation
         m_mistralApi.interpretTransits(transitData);
     } else {
@@ -2544,7 +2552,7 @@ void MainWindow::displayRawTransitData(const QJsonObject &transitData) {
                 aspect = aspect.trimmed();
                 //QRegularExpression aspectRe("((?:North|South) Node|Pars Fortuna|Part of Spirit|East Point|\\w+)(?:\\s+\\(R\\))? (\\w+) ((?:North|South) Node|Pars Fortuna|Part of Spirit|East Point|\\w+)\\( ([\\d.]+)°\\)");
 
-                QRegularExpression aspectRe("((?:North|South) Node|Pars Fortuna|Part of Spirit|East Point|\\w+)(?:\\s+\\(R\\))? (\\w+) ((?:North|South) Node|Pars Fortuna|Part of Spirit|East Point|\\w+(?:\\s+\\(R\\))?)\\( ([\\d.]+)°\\)");
+                QRegularExpression aspectRe("((?:North|South) Node|Pars Fortuna|Part of Spirit|East Point|\\w+)(?:\\s+\\(R\\))? (\\w+) ((?:North|South) Node|Pars Fortuna|Part of Spirit|East Point|\\w+(?:\\s+\\(R\\))?) \\(([\\d.]+)°\\)");
 
                 QRegularExpressionMatch aspectMatch = aspectRe.match(aspect);
 
@@ -4286,7 +4294,10 @@ void MainWindow::applyTransitFilter(const QString &datePattern,
             match &= rawTransitTable->item(row, 1)->text().contains(QRegularExpression(transitPattern, QRegularExpression::CaseInsensitiveOption));
         }
         if(match && !aspectPattern.isEmpty()) {
-            match &= rawTransitTable->item(row, 2)->text().contains(QRegularExpression(aspectPattern, QRegularExpression::CaseInsensitiveOption));
+            static const QString majorAspectRe = "Conjunction|Opposition|Trine|Square|Sextile";
+            const QString &effectiveAspect = aspectPattern.trimmed().compare("MAJOR", Qt::CaseInsensitive) == 0
+                                             ? majorAspectRe : aspectPattern;
+            match &= rawTransitTable->item(row, 2)->text().contains(QRegularExpression(effectiveAspect, QRegularExpression::CaseInsensitiveOption));
         }
         if(match && !natalPattern.isEmpty()) {
             match &= rawTransitTable->item(row, 3)->text().contains(QRegularExpression(natalPattern, QRegularExpression::CaseInsensitiveOption));

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -38,6 +39,7 @@ private:
     // Helper methods
     QJsonObject createPrompt(const QJsonObject &chartData);
     QString formatInterpretation(const QJsonObject &response);
+    QJsonArray buildGroupedTransitJson(const QString &rawTransitData) const;
 
     // Settings management
     QString getSettingsPath() const;
