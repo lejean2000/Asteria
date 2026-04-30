@@ -416,7 +416,7 @@ void MainWindow::setupInputDock() {
 
     // Latitude input with regex validation
     m_latitudeEdit = new QLineEdit(birthGroup);
-    m_latitudeEdit->setReadOnly(true);
+    m_latitudeEdit->setReadOnly(false);
     //m_latitudeEdit->setPlaceholderText("e.g: 40N42 (0-90 degrees)");
     m_latitudeEdit->setToolTip("Please prefer the 'From Google' field or the 'Select on Map' button.");
 
@@ -427,7 +427,7 @@ void MainWindow::setupInputDock() {
 
     // Longitude input with regex validation
     m_longitudeEdit = new QLineEdit(birthGroup);
-    m_longitudeEdit->setReadOnly(true);
+    m_longitudeEdit->setReadOnly(false);
     //m_longitudeEdit->setPlaceholderText("e.g: 074W00 (0-180 degrees)");
     //m_longitudeEdit->setToolTip("e.g:, 074W00 (0-180 degrees). Please prefer the 'From Google' field");
     m_longitudeEdit->setToolTip("Please prefer the 'From Google' field or the 'Select on Map' button.");
