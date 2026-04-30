@@ -200,4 +200,4 @@ The `.astr` save file for a bi-wheel contains these top-level keys:
 
 ## Version
 
-Current version: `2.1.5` (set in `main.cpp` via `QCoreApplication::setApplicationVersion`).
+App name: `Asteria L`. Current version: `0.9` (set in `main.cpp` via `QCoreApplication::setApplicationVersion`).

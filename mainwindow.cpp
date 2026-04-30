@@ -59,7 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     setAcceptDrops(true);
     preloadMapResources();
     // Set window title and size
-    setWindowTitle("Asteria - Astrological Chart Analysis");
+    setWindowTitle("Asteria L - Astrological Chart Analysis");
     setWindowIcon(QIcon(":/icons/asteria-icon-512.png"));
     // Setup UI components
     setupUi();
@@ -2133,15 +2133,17 @@ void MainWindow::showAboutDialog()
     QString version = QCoreApplication::applicationVersion();
     QMessageBox::about(
                 this,
-                "About Asteria",
-                QString("<h3>Asteria - Astrological Chart Analysis</h3>"
+                "About Asteria L",
+                QString("<h3>Asteria L - Astrological Chart Analysis</h3>"
                         "<p>Version %1</p>"
+                        "<p>A fork of <a href=\"https://github.com/alamahant/Asteria\">Asteria</a> "
+                        "by Alamahant, extended and maintained by lejean2000.</p>"
                         "<p>A tool for calculating and interpreting astrological charts "
                         "with AI-powered analysis.</p>"
-                        "<p>Available for Linux, Windows, Macos and Flatpak.</p>"
-                        "<p><a href=\"https://github.com/alamahant/Asteria/releases/latest\">"
-                        "https://github.com/alamahant/Asteria/releases/latest</a></p>"
-                        "<p>© 2025 Alamahant</p>")
+                        "<p>Available for Windows and Linux (Flatpak).</p>"
+                        "<p><a href=\"https://github.com/lejean2000/Asteria\">"
+                        "https://github.com/lejean2000/Asteria</a></p>"
+                        "<p>© 2025 Alamahant &nbsp;|&nbsp; © 2026 lejean2000</p>")
                 .arg(version)
                 );
 }
@@ -3168,27 +3170,21 @@ void MainWindow::showHowToUseDialog() {
             <li><b>Zodiac Signs:</b> The twelve signs of the zodiac form the outer wheel of the chart.</li>
         </ul>
         <h3>Getting AI Interpretations</h3>
-        <p>Asteria uses the Mistral AI API to provide personalized astrological interpretations. To use this feature:</p>
+        <p>Asteria L works with any AI provider that uses the OpenAI-compatible API format. To use this feature:</p>
         <ol>
-            <li><b>Create a Mistral AI account:</b>
+            <li><b>Choose an AI provider:</b>
                 <ul>
-                    <li>Navigate to <a href="https://mistral.ai/">https://mistral.ai/</a></li>
-                    <li>Click "Try the API" button</li>
-                    <li>Sign up for an account</li>
+                    <li>Recommended: <b>DeepSeek v4 Pro</b> or <b>Kimi K2.6</b> — both deliver excellent astrological interpretations at low cost.</li>
+                    <li>Also compatible with OpenAI, Groq, Mistral, Ollama (local), and any OpenAI-compatible endpoint.</li>
+                    <li><b>Not compatible:</b> Anthropic Claude and Google Gemini use different API formats and will not work.</li>
                 </ul>
             </li>
-            <li><b>Get your API key:</b>
+            <li><b>Get your API key</b> from your chosen provider's developer console and keep it secure.</li>
+            <li><b>Configure a model in Asteria L:</b>
                 <ul>
-                    <li>Once logged in, go to the "API Keys" section</li>
-                    <li>Create a new API key (keep this secure as it's linked to your account)</li>
-                </ul>
-            </li>
-            <li><b>Configure Asteria to use your API key:</b>
-                <ul>
-                    <li>In Asteria, go to "Settings" in the menu bar</li>
-                    <li>Select "Configure API Key"</li>
-                    <li>Enter your Mistral AI API key in the provided field</li>
-                    <li>Click "Save"</li>
+                    <li>Go to <b>Settings → Configure AI Models</b></li>
+                    <li>Click <b>Add</b> and fill in the endpoint URL, API key, and model name</li>
+                    <li>Set it as the active model and click Save</li>
                 </ul>
             </li>
             <li><b>Using AI features:</b>
@@ -3199,7 +3195,7 @@ void MainWindow::showHowToUseDialog() {
                 </ul>
             </li>
         </ol>
-        <p><b>Note:</b> The AI interpretation feature requires an internet connection. Mistral AI offers free tokens for API usage, and with moderate usage you will be fine within the free tier. Usage beyond their free tier may incur charges to your Mistral AI account.</p>
+        <p><b>Note:</b> Cloud providers require an internet connection and may charge per use. For free local models, install <a href="https://ollama.ai/">Ollama</a> and configure it with endpoint <code>http://localhost:11434/v1</code>.</p>
         <h3>Tips & Features</h3>
         <ul>
             <li>Hover your mouse over planets, signs, and houses on the chart to see detailed tooltips containing valuable information.</li>
@@ -4129,14 +4125,16 @@ void MainWindow::showChangelog(){
 
 <h1>Changelog</h1>
 
-<h2>Version 2.4.5 (2026-03-02) <span style='color:#27ae60;'>— Multi-Provider AI Model Selector</span></h2>
+<h2>Version 0.9 (2026-04-30) <span style='color:#27ae60;'>— Asteria L fork by lejean2000</span></h2>
 <ul>
-  <li><b>Model Selector Dialog:</b> Add, edit, delete, and set active AI models via Settings menu</li>
-  <li><b>Multi-Provider Support:</b> Works with Mistral, OpenAI, Groq, Ollama, and any OpenAI-compatible API</li>
-  <li><b>Dynamic Configuration:</b> Endpoint, API key, model name, temperature, max tokens stored in QSettings</li>
-  <li><b>API Refactor:</b> MistralAPI now provider-agnostic with loadActiveModel() method</li>
-  <li><b>Status Check:</b> New "Check AI Model Status" option showing active model details with API key warnings</li>
-  <li><b>Incompatible Notice:</b> Claude and Gemini not supported (different API formats)</li>
+  <li><b>Dual progressed/natal bi-wheel chart</b> with full save and reload support</li>
+  <li><b>Extended AI prompts:</b> richer natal chart narrative, dedicated progressed chart prompt, improved transit interpretations</li>
+  <li><b>AI prompts moved to Qt resource files</b> for easier maintenance</li>
+  <li><b>Clone button</b> in the AI Model Selector dialog</li>
+  <li><b>Planet icons</b> now shown in the modalities panel</li>
+  <li><b>Editable latitude/longitude fields</b> — coordinates can be typed directly</li>
+  <li><b>Windows installer</b> built with Inno Setup</li>
+  <li><b>Fixes:</b> chart type persistence, JSON data precision, higher default API token limits</li>
 </ul>
 
 )";
@@ -6113,43 +6111,19 @@ void MainWindow::showNewFeaturesDialog() {
         // Set the new features content
         QString featuresText = R"(
 
-<h1 style="color:#27ae60;">What's New in Version 2.4.5</h1>
-<p><i>March 2, 2026</i></p>
+<h1 style="color:#27ae60;">What's New in Asteria L Version 0.9</h1>
+<p><i>April 30, 2026</i></p>
 
-<h2 style="color:#2980b9;">✨ Multi-Provider AI Model Selector</h2>
-<p>
-A complete overhaul of AI provider management! You can now configure and switch between multiple AI models directly from the Settings menu.
-</p>
 <ul>
-<li><b>Model Selector Dialog</b>: Add, edit, delete, and set active AI models with ease</li>
-<li><b>Persistent Storage</b>: All model configurations saved in <code>QSettings</code></li>
-<li><b>Provider Support</b>: Works with Mistral, OpenAI (ChatGPT), Groq, Ollama (local), and any OpenAI-compatible API</li>
+<li><b>Dual progressed/natal bi-wheel chart</b> with full save and reload support</li>
+<li><b>Extended AI prompts:</b> richer natal chart narrative, dedicated progressed chart prompt, improved transit interpretations</li>
+<li><b>AI prompts moved to Qt resource files</b> for easier maintenance</li>
+<li><b>Clone button</b> in the AI Model Selector dialog</li>
+<li><b>Planet icons</b> now shown in the modalities panel</li>
+<li><b>Editable latitude/longitude fields</b> — coordinates can be typed directly</li>
+<li><b>Windows installer</b> built with Inno Setup</li>
+<li><b>Fixes:</b> chart type persistence, JSON data precision, higher default API token limits</li>
 </ul>
-
-<h2 style="color:#2980b9;">🔧 API Improvements</h2>
-<ul>
-<li>Refactored <code>MistralAPI</code> to be provider-agnostic with dynamic configuration loading</li>
-<li>Temperature and max tokens now loaded from model settings instead of hardcoded values</li>
-<li>Removed deprecated API key management methods</li>
-</ul>
-
-<h2 style="color:#2980b9;">🖥️ Enhanced User Experience</h2>
-<ul>
-<li><b>Check AI Model Status</b>: New menu option showing active model details with color-coded API key status</li>
-<li><b>Smart Warnings</b>: Alerts when cloud providers are missing API keys</li>
-<li><b>Automatic Reload</b>: Model configuration updates instantly when changed</li>
-<li><b>Informational Tooltip</b>: Lists compatible providers (Mistral, OpenAI, Groq, Ollama) and incompatible ones (Claude, Gemini)</li>
-</ul>
-
-<h2 style="color:#2980b9;">📁 New Files Added</h2>
-<ul>
-<li><code>model.h</code> - Model struct definition</li>
-<li><code>modelselectordialog.h/.cpp</code> - Model management interface</li>
-</ul>
-
-<div style="background-color:#f8f9fa; border-left:4px solid #27ae60; padding:10px; margin-top:20px;">
-<p><b>Note:</b> If you've been using Mistral, you can continue with your existing API key or explore new providers like Groq (free tier) or Ollama (local models).</p>
-</div>
 
 <h1 style="color:#27ae60;">What’s New in Version 2.1.3</h1>
 <p>

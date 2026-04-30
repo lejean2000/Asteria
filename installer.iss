@@ -1,11 +1,11 @@
 [Setup]
-AppName=Asteria
-AppVersion=2.1.5
-AppPublisher=Alamahant
+AppName=Asteria L
+AppVersion=0.9
+AppPublisher=lejean2000
 DefaultDirName={commonpf32}\Asteria
-DefaultGroupName=Asteria
+DefaultGroupName=Asteria L
 OutputDir=installer_output
-OutputBaseFilename=Asteria_2.1.5_Setup
+OutputBaseFilename=AsteriaL_0.9_Setup
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
