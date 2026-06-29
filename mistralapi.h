@@ -24,6 +24,7 @@ public:
     // Get the last error message
     QString getLastError() const;
     QString getApiKey() const { return m_apiKey; }
+    QString modelName() const { return m_model; }
 
 
 signals:

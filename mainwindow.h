@@ -146,7 +146,7 @@ private:
     QJsonObject m_currentChartData;
     QJsonObject m_currentNatalChartData;   // non-empty only for bi-wheel (secondary progression)
     int         m_progressionYear = 0;     // the progression year used for the bi-wheel
-    QString m_currentInterpretation;
+    QJsonArray m_interpretations;
     bool m_chartCalculated;
     QDate getBirthDate() const;
     //ParsedDate getBirthDate() const;
@@ -318,6 +318,11 @@ private:
     void importChartInputData(const QJsonObject &inputData);
     QString markdownToHtml(const QString &markdown);
     QString plainTextToHtml(const QString &plainText);
+    void appendInterpretationEntry(const QString &type, const QString &chartType,
+                                   const QString &text,
+                                   const QString &periodFrom = {},
+                                   const QString &periodTo   = {});
+    void renderAllInterpretations();
 private slots:
     void calculateZodiacSignsChart();
     void copySavePath();
