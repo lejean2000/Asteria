@@ -25,6 +25,8 @@
 #include <QImageReader>
 #include <QTimer>
 #include <QSplitter>
+#include <QScrollArea>
+#include <QFrame>
 #include <QStatusBar>
 #include <QMenuBar>
 #include <QMenu>
@@ -137,7 +139,9 @@ private:
     QHBoxLayout *chartLayout;
     QWidget *chartContainer;
     // Interpretation widgets
-    QTextEdit *m_interpretationtextEdit;
+    QScrollArea  *m_interpretationScrollArea;
+    QWidget      *m_interpretationContainer;
+    QVBoxLayout  *m_interpretationLayout;
     QPushButton *m_getInterpretationButton;
     // Data managers
     ChartDataManager m_chartDataManager;

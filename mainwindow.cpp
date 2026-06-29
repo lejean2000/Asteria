@@ -734,11 +734,16 @@ void MainWindow::setupInterpretationDock() {
     m_getInterpretationButton->setIcon(QIcon::fromTheme("system-search"));
     m_getInterpretationButton->setEnabled(false);
 
-    // Interpretation text area
-    m_interpretationtextEdit = new QTextEdit(interpretationWidget);
-    m_interpretationtextEdit->setAcceptRichText(true);
-    m_interpretationtextEdit->setReadOnly(true);
-    m_interpretationtextEdit->setPlaceholderText("AI interpretation will appear here after you click the 'Get Chart Interpretation From AI' button.");
+    // Interpretation scroll area with collapsible cards
+    m_interpretationScrollArea = new QScrollArea(interpretationWidget);
+    m_interpretationScrollArea->setWidgetResizable(true);
+    m_interpretationScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_interpretationContainer = new QWidget();
+    m_interpretationLayout = new QVBoxLayout(m_interpretationContainer);
+    m_interpretationLayout->setAlignment(Qt::AlignTop);
+    m_interpretationLayout->setContentsMargins(4, 4, 4, 4);
+    m_interpretationLayout->setSpacing(6);
+    m_interpretationScrollArea->setWidget(m_interpretationContainer);
 
     // Add Language Button
     QHBoxLayout* languageLayout = new QHBoxLayout();
@@ -770,7 +775,7 @@ void MainWindow::setupInterpretationDock() {
 
     // Add widgets to layout
     interpretationLayout->addWidget(m_getInterpretationButton);
-    interpretationLayout->addWidget(m_interpretationtextEdit);
+    interpretationLayout->addWidget(m_interpretationScrollArea);
     interpretationLayout->addLayout(languageLayout);
     interpretationLayout->addWidget(clearTextButton);
 
@@ -836,11 +841,6 @@ void MainWindow::setupMenus()
         chartData["houseSystem"] = m_houseSystemCombo->currentText();
         chartData["useJulian"] = useJulianForPre1582Action->isChecked();
         chartData["chartType"] = AsteriaGlobals::lastGeneratedChartType;
-
-        // Include interpretation text if available
-        if (m_interpretationtextEdit && !m_interpretationtextEdit->toPlainText().isEmpty()) {
-            chartData["interpretationText"] = m_interpretationtextEdit->toPlainText();
-        }
 
         chartData["chartData"] = m_currentChartData;
 
@@ -1655,7 +1655,6 @@ void MainWindow::getInterpretation() {
     qDebug() << "getInterpretation: dataToSend="
              << QString::fromUtf8(QJsonDocument(dataToSend).toJson(QJsonDocument::Compact));
 
-    m_interpretationtextEdit->append("Requesting interpretation from AI. This may take minutes...\n");
     m_getInterpretationButton->setEnabled(false);
     statusBar()->showMessage("Requesting interpretation...");
 
@@ -1702,58 +1701,108 @@ void MainWindow::appendInterpretationEntry(const QString &type, const QString &c
 
 void MainWindow::renderAllInterpretations()
 {
-    m_interpretationtextEdit->setAcceptRichText(true);
+    // Remove all existing cards from the layout
+    while (QLayoutItem *item = m_interpretationLayout->takeAt(0)) {
+        if (QWidget *w = item->widget()) w->deleteLater();
+        delete item;
+    }
+
     if (m_interpretations.isEmpty()) {
-        m_interpretationtextEdit->clear();
+        QLabel *placeholder = new QLabel(
+            "No interpretations yet.\nCalculate a chart and click\n'Get AI Interpretation'.",
+            m_interpretationContainer);
+        placeholder->setAlignment(Qt::AlignCenter);
+        placeholder->setWordWrap(true);
+        placeholder->setStyleSheet("color: palette(mid); padding: 32px;");
+        m_interpretationLayout->addWidget(placeholder);
         return;
     }
 
-    QString fullHtml;
     for (const QJsonValue &val : std::as_const(m_interpretations)) {
-        QJsonObject entry   = val.toObject();
-        QString type        = entry["type"].toString();
-        QString chartType   = entry["chartType"].toString();
-        QString text        = entry["text"].toString();
-        QString genAt       = entry["generatedAt"].toString();
-        QString genAtFormatted;
-        if (!genAt.isEmpty())
-            genAtFormatted = QDateTime::fromString(genAt, Qt::ISODate).toString("dd MMM yyyy HH:mm");
+        QJsonObject entry      = val.toObject();
+        QString type           = entry["type"].toString();
+        QString chartType      = entry["chartType"].toString();
+        QString text           = entry["text"].toString();
+        QString genAt          = entry["generatedAt"].toString();
+        QString genAtFormatted = genAt.isEmpty()
+            ? QString()
+            : QDateTime::fromString(genAt, Qt::ISODate).toString("dd MMM yyyy HH:mm");
+
+        // Header label and accent colour per entry type
+        QString headerLabel;
+        QString bgColor;
 
         if (type == "chart_info") {
-            fullHtml += "<pre style=\"font-family:inherit;white-space:pre-wrap;\">"
-                        + text.toHtmlEscaped() + "</pre>";
+            headerLabel = chartType.isEmpty() ? "Chart Info" : chartType;
+            bgColor = "#3a6186";
         } else if (type == "ai_chart") {
-            QString model  = entry["model"].toString();
-            QString header = QString("<p><b>%1 Interpretation</b>").arg(chartType.isEmpty() ? "Chart" : chartType);
-            if (!genAtFormatted.isEmpty())
-                header += QString(" &mdash; %1").arg(genAtFormatted);
-            if (!model.isEmpty())
-                header += QString(" <i>(%1)</i>").arg(model.toHtmlEscaped());
-            header += "</p>";
-            fullHtml += header + markdownToHtml(text)
-                        + "<p><i>Received interpretation from AI...</i></p>";
+            headerLabel = (chartType.isEmpty() ? "Chart" : chartType) + " Interpretation";
+            if (!genAtFormatted.isEmpty()) headerLabel += "  — " + genAtFormatted;
+            QString model = entry["model"].toString();
+            if (!model.isEmpty()) headerLabel += "  (" + model + ")";
+            bgColor = "#1a6b4a";
         } else if (type == "ai_transit") {
-            QString from   = entry["periodFrom"].toString();
-            QString to     = entry["periodTo"].toString();
-            QString model  = entry["model"].toString();
-            QString header = "<p><b>Transit Prediction</b>";
+            headerLabel = "Transit Prediction";
+            QString from = entry["periodFrom"].toString();
+            QString to   = entry["periodTo"].toString();
             if (!from.isEmpty() && !to.isEmpty())
-                header += QString(" &mdash; %1 to %2").arg(from, to);
-            if (!genAtFormatted.isEmpty())
-                header += QString(" (generated %1)").arg(genAtFormatted);
-            if (!model.isEmpty())
-                header += QString(" <i>(%1)</i>").arg(model.toHtmlEscaped());
-            header += "</p>";
-            fullHtml += header + markdownToHtml(text)
-                        + "<p><i>Transit interpretation received</i></p>";
+                headerLabel += "  — " + from + " → " + to;
+            if (!genAtFormatted.isEmpty()) headerLabel += "  (" + genAtFormatted + ")";
+            QString model = entry["model"].toString();
+            if (!model.isEmpty()) headerLabel += "  [" + model + "]";
+            bgColor = "#7d4e1a";
         } else {
-            // legacy: old-format blob loaded from a pre-v2 save file
-            fullHtml += "<p><i>Interpretation (imported from previous format)</i></p>"
-                        + markdownToHtml(text);
+            headerLabel = "Imported Interpretation";
+            if (!chartType.isEmpty()) headerLabel += " (" + chartType + ")";
+            bgColor = "#4a4a4a";
         }
-    }
 
-    m_interpretationtextEdit->setHtml(fullHtml);
+        // Card frame
+        QFrame *card = new QFrame(m_interpretationContainer);
+        card->setFrameShape(QFrame::StyledPanel);
+        card->setFrameShadow(QFrame::Plain);
+        QVBoxLayout *cardLayout = new QVBoxLayout(card);
+        cardLayout->setContentsMargins(0, 0, 0, 0);
+        cardLayout->setSpacing(0);
+
+        // Clickable header button
+        QPushButton *hdr = new QPushButton(card);
+        hdr->setCheckable(true);
+        hdr->setChecked(true);
+        hdr->setProperty("baseLabel", headerLabel);
+        hdr->setText("▼  " + headerLabel);
+        hdr->setStyleSheet(QString(
+            "QPushButton {"
+            "  background-color: %1;"
+            "  color: #ffffff;"
+            "  border: none;"
+            "  padding: 7px 12px;"
+            "  text-align: left;"
+            "  font-weight: bold;"
+            "  font-size: 11px;"
+            "}").arg(bgColor));
+
+        // Body browser — sized to content, outer scroll area handles navigation
+        QTextBrowser *body = new QTextBrowser(card);
+        body->setOpenExternalLinks(true);
+        body->setFrameShape(QFrame::NoFrame);
+        body->setStyleSheet("QTextBrowser { padding: 8px; }");
+        body->setHtml(markdownToHtml(text));
+        body->document()->setTextWidth(380);
+        int docH = static_cast<int>(body->document()->size().height()) + 20;
+        body->setFixedHeight(qMin(docH, 600));
+
+        cardLayout->addWidget(hdr);
+        cardLayout->addWidget(body);
+
+        connect(hdr, &QPushButton::toggled, [hdr, body](bool expanded) {
+            body->setVisible(expanded);
+            hdr->setText(QString(expanded ? "▼  " : "▶  ")
+                         + hdr->property("baseLabel").toString());
+        });
+
+        m_interpretationLayout->addWidget(card);
+    }
 }
 
 void MainWindow::newChart() {
@@ -1795,9 +1844,7 @@ void MainWindow::newChart() {
     // Clear chart renderer
     m_chartRenderer->scene()->clear();
 
-    // Clear interpretation text
-    m_interpretationtextEdit->clear();
-    m_interpretationtextEdit->setPlaceholderText("Calculate a chart and click 'Get AI Interpretation'");
+    renderAllInterpretations();
     m_getInterpretationButton->setEnabled(false);
 
     // Clear sidebar widgets with empty data
@@ -2386,8 +2433,6 @@ void MainWindow::getPrediction() {
         return;
     }
 
-    // Clear previous interpretation
-    m_interpretationtextEdit->setPlaceholderText("Calculating transits...");
     getPredictionButton->setEnabled(false);
 
     // Update status
@@ -2764,18 +2809,22 @@ void MainWindow::exportAsPdf() {
         pdfPainter.drawLine(tableX + i * colWidth, tableY, tableX + i * colWidth, currentY);
     
     // ------- PAGE 5+: INTERPRETATION -------
-    if (!m_interpretationtextEdit->toPlainText().isEmpty()) {
+    if (!m_interpretations.isEmpty()) {
+        QString interpretationText;
+        for (const QJsonValue &v : std::as_const(m_interpretations))
+            interpretationText += v.toObject()["text"].toString() + "\n\n";
+
         pdfWriter.newPage();
         titleFont.setPointSize(22);
         pdfPainter.setFont(titleFont);
         pdfPainter.drawText(QRect(0, margin, pageWidth, 70), Qt::AlignCenter, "Interpretation");
-        
+
         QTextDocument doc;
         textFont.setPointSize(16);
         doc.setDefaultFont(textFont);
         doc.setDocumentMargin(20);
         doc.setTextWidth(pageWidth - 2 * margin);
-        doc.setPlainText(m_interpretationtextEdit->toPlainText());
+        doc.setPlainText(interpretationText.trimmed());
         
         QAbstractTextDocumentLayout* layout = doc.documentLayout();
         qreal totalHeight = layout->documentSize().height();
@@ -5974,8 +6023,7 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
     getTransitsButton->setEnabled(true);
 
     m_interpretations = QJsonArray();
-    m_interpretationtextEdit->clear();
-    m_interpretationtextEdit->setPlaceholderText("Click 'Get AI Interpretation' to analyze this chart.");
+    renderAllInterpretations();
     statusBar()->showMessage("Secondary progression bi-wheel calculated successfully", 3000);
 
     QString infoText = QString(
@@ -6281,12 +6329,6 @@ void MainWindow::startChartDrag()
     // Include the chart type
     inputData["chartType"] = AsteriaGlobals::lastGeneratedChartType;
 
-    // Include interpretation text if available
-    if (m_interpretationtextEdit && !m_interpretationtextEdit->toPlainText().isEmpty()) {
-
-        inputData["interpretationText"] = m_interpretationtextEdit->toPlainText();
-    }
-
     inputData["chartData"] = m_currentChartData;
 
     // Create MIME data for drag
@@ -6346,12 +6388,6 @@ void MainWindow::importChartInputData(const QJsonObject &inputData)
     // Set the chart type from the dragged data
     if (inputData.contains("chartType")) {
         AsteriaGlobals::lastGeneratedChartType = inputData["chartType"].toString();
-    }
-
-    // Extract and set interpretation text if available
-    if (inputData.contains("interpretationText") && m_interpretationtextEdit) {
-        QString interpretation = inputData["interpretationText"].toString();
-        m_interpretationtextEdit->setPlainText(interpretation);
     }
 
     // Always use the pre-calculated chart data - call displayChart directly!
