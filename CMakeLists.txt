@@ -96,6 +96,16 @@ endif()
 set(PROJECT_SOURCES
     main.cpp
     mainwindow.cpp
+    mainwindow_setup.cpp
+    mainwindow_chart.cpp
+    mainwindow_interpretation.cpp
+    mainwindow_fileio.cpp
+    mainwindow_export.cpp
+    mainwindow_dialogs.cpp
+    mainwindow_relationships.cpp
+    mainwindow_transits.cpp
+    mainwindow_returns.cpp
+    mainwindow_misc.cpp
     mainwindow.h
     mainwindow.ui
     astro_types.h astro_types.cpp

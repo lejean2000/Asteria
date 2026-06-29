@@ -64,10 +64,23 @@ Set up in `main.cpp` via `qInstallMessageHandler`. Format: `hh:mm:ss.zzz [D/W/C/
 
 ## Source File Map
 
+`MainWindow` is split across multiple `.cpp` files (all implement the same class declared in `mainwindow.h`):
+
 | File | Responsibility |
 |---|---|
 | `main.cpp` | Entry point. Installs log handler, loads font, sets org/app name, creates `MainWindow`. |
-| `mainwindow.h/.cpp` | Central UI: input dock, chart display, interpretation dock, all menus and slots. ~2000+ lines. |
+| `mainwindow.h` | Class declaration. All member variables and method signatures live here. |
+| `mainwindow.cpp` | Core: includes, `dateRegex` definition, constructor, destructor. ~119 lines. |
+| `mainwindow_setup.cpp` | All `setup*` methods: `setupUi`, `setupCentralWidget`, `setupInputDock`, `setupInterpretationDock`, `setupMenus`, `setupConnections`. ~1100 lines. |
+| `mainwindow_chart.cpp` | Natal chart: `calculateChart`, `displayChart`, `updateChartDetailsTables`. Also defines `roundJsonDoubles` (used by interpretation). ~300 lines. |
+| `mainwindow_interpretation.cpp` | AI interpretation: `getInterpretation`, `displayInterpretation`, `appendInterpretationEntry`, `renderAllInterpretations`, `markdownToHtml`, `plainTextToHtml`. ~300 lines. |
+| `mainwindow_fileio.cpp` | File I/O + settings: `newChart`, `saveChart`, `loadChart`, `exportInterpretation`, `saveSettings`, `loadSettings`, `getBirthDate`, `convertJsonToChartData`. ~580 lines. |
+| `mainwindow_export.cpp` | Transit display helpers + export/print: `getPrediction`, `displayTransitInterpretation`, `populateInfoOverlay`, `displayRawTransitData`, `exportChartImage`, `exportAsPdf`, `exportAsSvg`, `printChart`, `printPdfFromPath`, `drawPage0`, `drawStarBanner`. ~700 lines. |
+| `mainwindow_dialogs.cpp` | Location search, map, and minor dialogs: `searchLocationCoordinates`, `showSymbolsDialog`, `showHowToUseDialog`, `onOpenMapClicked`, `showAspectSettings`. ~190 lines. |
+| `mainwindow_relationships.cpp` | Relationship charts: `createCompositeChart`, `createDavisonChart`, `createSynastryChart`, `showRelationshipChartsDialog`, `loadChartForRelationships`, `showChangelog`. ~860 lines. |
+| `mainwindow_transits.cpp` | Transits + eclipses: `CalculateTransits`, `applyTransitFilter`, `openTransitFilter`, `exportChartData`, `CalculateEclipses`, `displayRawEclipseData`. ~370 lines. |
+| `mainwindow_returns.cpp` | All planetary returns + secondary progression: 10× `calculate*Return` / `do*ReturnCalculation` pairs, `calculateSecondaryProgression`, `validateDateFormat`, `julianToGregorian`, `checkAndConvertJulian`. ~1530 lines. |
+| `mainwindow_misc.cpp` | Remaining features + events: `showNewFeaturesDialog`, `toggleChartOnlyView`, `eventFilter`, drag-drop handlers, `importChartInputData`, `calculateZodiacSignsChart`, `copySavePath`, `configureAIModels`. ~520 lines. |
 | `chartcalculator.h/.cpp` | All astrological maths via Swiss Ephemeris. Natal, solar/lunar/planetary returns, transits, progressions, eclipses. |
 | `chartrenderer.h/.cpp` | `QGraphicsView`-based wheel chart renderer. `PlanetItem`, `AspectItem` custom graphics items. |
 | `chartdatamanager.h/.cpp` | Serialise/deserialise chart data to/from JSON for save/load. |
