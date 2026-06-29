@@ -350,15 +350,12 @@ QJsonObject MistralAPI::createPrompt(const QJsonObject &chartData) {
 
     // Create the complete request object
     QJsonObject requestObj;
-    requestObj["model"] = m_model;
-    requestObj["messages"] = messages;
-    requestObj["temperature"] = m_temperature;
-    requestObj["max_tokens"] = m_maxTokens;
-    requestObj["stream"] = false;
-
-    if (AsteriaGlobals::lastGeneratedChartType == "Secondary Progression") {
-        requestObj["reasoning_effort"] = QString("high");
-    }
+    requestObj["model"]            = m_model;
+    requestObj["messages"]         = messages;
+    requestObj["temperature"]      = m_temperature;
+    requestObj["max_tokens"]       = m_maxTokens;
+    requestObj["stream"]           = false;
+    requestObj["reasoning_effort"] = QString("high");
 
     return requestObj;
 }
@@ -412,11 +409,12 @@ QJsonObject MistralAPI::createTransitPrompt(const QJsonObject &transitData) {
     messages.append(userMessage);
 
     QJsonObject requestObj;
-    requestObj["model"]       = m_model;
-    requestObj["messages"]    = messages;
-    requestObj["temperature"] = m_temperature;
-    requestObj["max_tokens"]  = m_maxTokens;
-    requestObj["stream"]      = false;
+    requestObj["model"]            = m_model;
+    requestObj["messages"]         = messages;
+    requestObj["temperature"]      = m_temperature;
+    requestObj["max_tokens"]       = m_maxTokens;
+    requestObj["stream"]           = false;
+    requestObj["reasoning_effort"] = QString("high");
 
     return requestObj;
 }

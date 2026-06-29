@@ -718,15 +718,6 @@ void MainWindow::setupInputDock() {
     predictiveLayout->addRow("From:", m_predictiveFromEdit);
     predictiveLayout->addRow("Up to:", m_predictiveToEdit);
     //Prediction Button
-    /*
-    getPredictionButton = new QPushButton("Get AI Prediction", predictiveGroup);
-    getPredictionButton->setToolTip("This operation generates a huge ammount of data that is sent to AI for interpretation.\n"
-                                    "Therefore it may be costly tokenwise.\n To mitigate this please reduce the number of days and/or use smaller orb.");
-    getPredictionButton->setEnabled(false);
-    getPredictionButton->setIcon(QIcon::fromTheme("view-refresh"));
-    getPredictionButton->setStatusTip("The AI prediction will be appended at the end of any existing text. Scroll down and be patient!");
-    predictiveLayout->addRow(getPredictionButton);
-    */
     QHBoxLayout* buttonLayout = new QHBoxLayout();
 
     // Prediction Button
