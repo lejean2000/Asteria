@@ -120,95 +120,8 @@ void MainWindow::createCompositeChart() {
     // Create composite chart data
     QJsonObject compositeChartData;
 
-    // Calculate midpoint planets
-    QJsonArray planets1 = chartData1["planets"].toArray();
-    QJsonArray planets2 = chartData2["planets"].toArray();
-    QJsonArray compositePlanets;
-
-    // Create a map for quick lookup of planets in chart2
-    QMap<QString, QJsonObject> planetMap2;
-    for (const QJsonValue &planetValue : planets2) {
-        QJsonObject planet = planetValue.toObject();
-        planetMap2[planet["id"].toString()] = planet;
-    }
-
-    // Calculate midpoints for planets
-    for (const QJsonValue &planetValue1 : planets1) {
-        QJsonObject planet1 = planetValue1.toObject();
-        QString planetId = planet1["id"].toString();
-        // Find matching planet in chart2
-        if (planetMap2.contains(planetId)) {
-            QJsonObject planet2 = planetMap2[planetId];
-            // Create composite planet
-            QJsonObject compositePlanet;
-            compositePlanet["id"] = planetId;
-            // Calculate midpoint longitude
-            double long1 = planet1["longitude"].toDouble();
-            double long2 = planet2["longitude"].toDouble();
-            // Handle the case where angles cross 0°/360° boundary
-            double diff = fmod(long2 - long1 + 540.0, 360.0) - 180.0;
-            double midpoint = fmod(long1 + diff/2.0 + 360.0, 360.0);
-            compositePlanet["longitude"] = midpoint;
-            // Determine the sign for the midpoint
-            int signIndex = static_cast<int>(midpoint) / 30;
-            QStringList signs = {"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-                                 "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"};
-            compositePlanet["sign"] = signs[signIndex];
-            // Copy other properties from first planet
-            if (planet1.contains("retrograde"))
-                compositePlanet["retrograde"] = planet1["retrograde"];
-            if (planet1.contains("house"))
-                compositePlanet["house"] = planet1["house"];
-            compositePlanets.append(compositePlanet);
-        }
-    }
-
-    // Calculate midpoints for angles
-    QJsonArray angles1 = chartData1["angles"].toArray();
-    QJsonArray angles2 = chartData2["angles"].toArray();
-    QJsonArray compositeAngles;
-
-    // Create maps for quick lookup
-    QMap<QString, QJsonObject> angleMap1;
-    QMap<QString, QJsonObject> angleMap2;
-    for (const QJsonValue &angleValue : angles1) {
-        QJsonObject angle = angleValue.toObject();
-        if (angle.contains("id")) {
-            angleMap1[angle["id"].toString()] = angle;
-        }
-    }
-    for (const QJsonValue &angleValue : angles2) {
-        QJsonObject angle = angleValue.toObject();
-        if (angle.contains("id")) {
-            angleMap2[angle["id"].toString()] = angle;
-        }
-    }
-
-    // Calculate midpoints for common angles
-    QStringList angleIds = {"Asc", "MC", "Desc", "IC"};
-    for (const QString &id : angleIds) {
-        if (angleMap1.contains(id) && angleMap2.contains(id)) {
-            QJsonObject angle1 = angleMap1[id];
-            QJsonObject angle2 = angleMap2[id];
-            double longitude1 = angle1["longitude"].toDouble();
-            double longitude2 = angle2["longitude"].toDouble();
-            // Handle the case where angles cross 0°/360° boundary
-            double diff = fmod(longitude2 - longitude1 + 540.0, 360.0) - 180.0;
-            double midpoint = fmod(longitude1 + diff/2.0 + 360.0, 360.0);
-            // Determine the sign for the midpoint
-            int signIndex = static_cast<int>(midpoint) / 30;
-            QStringList signs = {"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-                                 "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"};
-            QString sign = signs[signIndex];
-            // Create a new angle object for the composite chart
-            QJsonObject compositeAngle;
-            compositeAngle["id"] = id;
-            compositeAngle["longitude"] = midpoint;
-            compositeAngle["sign"] = sign;
-            compositeAngles.append(compositeAngle);
-        }
-    }
-
+    // Calculate composite houses first (equal-house system from the composite Ascendant)
+    // so that composite planets can be placed into them below.
     QJsonArray houses1 = chartData1["houses"].toArray();
     QJsonArray houses2 = chartData2["houses"].toArray();
 
@@ -260,6 +173,120 @@ void MainWindow::createCompositeChart() {
         compositeHouse["longitude"] = houseLongitude;
         compositeHouse["sign"] = sign;
         compositeHouses.append(compositeHouse);
+    }
+
+    // Given a longitude, find which composite house it falls into (mirrors
+    // ChartCalculator::findHouse, operating on the composite's own JSON houses).
+    auto findCompositeHouse = [](double longitude, const QJsonArray &houses) -> QString {
+        longitude = fmod(longitude, 360.0);
+        if (longitude < 0) longitude += 360.0;
+        for (int i = 0; i < houses.size(); i++) {
+            QJsonObject house = houses[i].toObject();
+            QJsonObject nextHouse = houses[(i + 1) % houses.size()].toObject();
+            double start = house["longitude"].toDouble();
+            double end = nextHouse["longitude"].toDouble();
+            if (end < start) {
+                if (longitude >= start || longitude < end)
+                    return house["id"].toString();
+            } else {
+                if (longitude >= start && longitude < end)
+                    return house["id"].toString();
+            }
+        }
+        return "House1";
+    };
+
+    // Calculate midpoint planets
+    QJsonArray planets1 = chartData1["planets"].toArray();
+    QJsonArray planets2 = chartData2["planets"].toArray();
+    QJsonArray compositePlanets;
+
+    // Create a map for quick lookup of planets in chart2
+    QMap<QString, QJsonObject> planetMap2;
+    for (const QJsonValue &planetValue : planets2) {
+        QJsonObject planet = planetValue.toObject();
+        planetMap2[planet["id"].toString()] = planet;
+    }
+
+    // Calculate midpoints for planets
+    for (const QJsonValue &planetValue1 : planets1) {
+        QJsonObject planet1 = planetValue1.toObject();
+        QString planetId = planet1["id"].toString();
+        // Find matching planet in chart2
+        if (planetMap2.contains(planetId)) {
+            QJsonObject planet2 = planetMap2[planetId];
+            // Create composite planet
+            QJsonObject compositePlanet;
+            compositePlanet["id"] = planetId;
+            // Calculate midpoint longitude
+            double long1 = planet1["longitude"].toDouble();
+            double long2 = planet2["longitude"].toDouble();
+            // Handle the case where angles cross 0°/360° boundary
+            double diff = fmod(long2 - long1 + 540.0, 360.0) - 180.0;
+            double midpoint = fmod(long1 + diff/2.0 + 360.0, 360.0);
+            compositePlanet["longitude"] = midpoint;
+            // Determine the sign for the midpoint
+            int signIndex = static_cast<int>(midpoint) / 30;
+            QStringList signs = {"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+                                 "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"};
+            compositePlanet["sign"] = signs[signIndex];
+            // Retrograde: mark the composite point retrograde only if the planet was
+            // retrograde in both source charts. (The correct JSON key is "isRetrograde" -
+            // the old code checked a nonexistent "retrograde" key, so this never fired.)
+            bool retro1 = planet1.value("isRetrograde").toBool();
+            bool retro2 = planet2.value("isRetrograde").toBool();
+            compositePlanet["isRetrograde"] = retro1 && retro2;
+            // House: place the composite (midpoint) planet into the composite's own
+            // houses, instead of copying person 1's unrelated natal house placement.
+            compositePlanet["house"] = findCompositeHouse(midpoint, compositeHouses);
+            compositePlanets.append(compositePlanet);
+        }
+    }
+
+    // Calculate midpoints for angles
+    QJsonArray angles1 = chartData1["angles"].toArray();
+    QJsonArray angles2 = chartData2["angles"].toArray();
+    QJsonArray compositeAngles;
+
+    // Create maps for quick lookup
+    QMap<QString, QJsonObject> angleMap1;
+    QMap<QString, QJsonObject> angleMap2;
+    for (const QJsonValue &angleValue : angles1) {
+        QJsonObject angle = angleValue.toObject();
+        if (angle.contains("id")) {
+            angleMap1[angle["id"].toString()] = angle;
+        }
+    }
+    for (const QJsonValue &angleValue : angles2) {
+        QJsonObject angle = angleValue.toObject();
+        if (angle.contains("id")) {
+            angleMap2[angle["id"].toString()] = angle;
+        }
+    }
+
+    // Calculate midpoints for common angles
+    QStringList angleIds = {"Asc", "MC", "Desc", "IC"};
+    for (const QString &id : angleIds) {
+        if (angleMap1.contains(id) && angleMap2.contains(id)) {
+            QJsonObject angle1 = angleMap1[id];
+            QJsonObject angle2 = angleMap2[id];
+            double longitude1 = angle1["longitude"].toDouble();
+            double longitude2 = angle2["longitude"].toDouble();
+            // Handle the case where angles cross 0°/360° boundary
+            double diff = fmod(longitude2 - longitude1 + 540.0, 360.0) - 180.0;
+            double midpoint = fmod(longitude1 + diff/2.0 + 360.0, 360.0);
+            // Determine the sign for the midpoint
+            int signIndex = static_cast<int>(midpoint) / 30;
+            QStringList signs = {"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+                                 "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"};
+            QString sign = signs[signIndex];
+            // Create a new angle object for the composite chart
+            QJsonObject compositeAngle;
+            compositeAngle["id"] = id;
+            compositeAngle["longitude"] = midpoint;
+            compositeAngle["sign"] = sign;
+            compositeAngles.append(compositeAngle);
+        }
     }
 
     // Assemble the composite chart data
@@ -334,6 +361,10 @@ void MainWindow::createCompositeChart() {
     relationshipInfo["person2"] = name2 + " " + birthInfo2["lastName"].toString();
     relationshipInfo["displayName"] = "Composite Chart: " + compositeFirstName + " & " + compositeLastName;
     m_currentRelationshipInfo = relationshipInfo;
+    // Recalculating would discard the composite (midpoint-averaged) data and replace it
+    // with an unrelated Swiss Ephemeris calculation for the midpoint date/time - disable
+    // the button so that can't happen by accident.
+    m_calculateButton->setEnabled(false);
 
     // Calculate midpoint date and time using QDateTime
     QDateTime dateTime1, dateTime2;
@@ -408,19 +439,51 @@ void MainWindow::createCompositeChart() {
     compositeBirthInfo["longitude"] = compositeLonStr;  // Midpoint longitude
     compositeBirthInfo["googleCoords"] = compositeGoogleCoords;  // Formatted Google coordinates
 
-    QString compositeUtcOffsetStr = "+0:00";
+    // Average the two source charts' own UTC offsets (mirrors createDavisonChart()) -
+    // this used to be hardcoded to "+0:00" regardless of the actual source offsets.
+    QString utcOffsetStr1 = birthInfo1["utcOffset"].toString();
+    QString utcOffsetStr2 = birthInfo2["utcOffset"].toString();
+    bool utcNeg1 = utcOffsetStr1.startsWith("-");
+    bool utcNeg2 = utcOffsetStr2.startsWith("-");
+    QStringList utcParts1 = utcOffsetStr1.mid(1).split(":");
+    QStringList utcParts2 = utcOffsetStr2.mid(1).split(":");
+    double utcHours1 = utcParts1.value(0).toDouble() + utcParts1.value(1).toDouble() / 60.0;
+    double utcHours2 = utcParts2.value(0).toDouble() + utcParts2.value(1).toDouble() / 60.0;
+    if (utcNeg1) utcHours1 = -utcHours1;
+    if (utcNeg2) utcHours2 = -utcHours2;
+    double compositeUtcHours = (utcHours1 + utcHours2) / 2.0;
+    bool utcNeg = compositeUtcHours < 0;
+    double utcAbsHours = std::abs(compositeUtcHours);
+    int utcH = static_cast<int>(utcAbsHours);
+    int utcM = static_cast<int>((utcAbsHours - utcH) * 60);
+    QString compositeUtcOffsetStr = QString("%1%2:%3")
+            .arg(utcNeg ? "-" : "+")
+            .arg(utcH, 1, 10, QChar('0'))
+            .arg(utcM, 2, 10, QChar('0'));
+
     // Set in birth info
     compositeBirthInfo["utcOffset"] = compositeUtcOffsetStr;
-    // Set in UI combobox - find the item with +00:00
+
+    // Set in UI combobox, trying progressively looser matches before adding a new entry
     int index = m_utcOffsetCombo->findText(compositeUtcOffsetStr);
+    if (index < 0) {
+        index = m_utcOffsetCombo->findText("UTC" + compositeUtcOffsetStr);
+    }
+    if (index < 0) {
+        QString numericPart = compositeUtcOffsetStr.mid(1);
+        for (int i = 0; i < m_utcOffsetCombo->count(); i++) {
+            if (m_utcOffsetCombo->itemText(i).contains(numericPart)) {
+                index = i;
+                break;
+            }
+        }
+    }
     if (index >= 0) {
         m_utcOffsetCombo->setCurrentIndex(index);
     } else {
-        // If not found, try to find one with "UTC+0" or similar
-        index = m_utcOffsetCombo->findText("UTC+0", Qt::MatchContains);
-        if (index >= 0) {
-            m_utcOffsetCombo->setCurrentIndex(index);
-        }
+        // If all else fails, add the calculated offset to the combobox
+        m_utcOffsetCombo->addItem(compositeUtcOffsetStr);
+        m_utcOffsetCombo->setCurrentIndex(m_utcOffsetCombo->count() - 1);
     }
 
     compositeBirthInfo["houseSystem"] = birthInfo1["houseSystem"].toString();  // Keep first person's house system
@@ -435,6 +498,8 @@ void MainWindow::createCompositeChart() {
 
     // Display the chart
     m_currentChartData = compositeChartData;
+    m_interpretations = QJsonArray(); // Discard interpretations from any previously displayed chart
+    renderAllInterpretations();
     displayChart(compositeChartData);
     m_chartCalculated = true;
     AsteriaGlobals::lastGeneratedChartType = "Composite Relationship";
@@ -666,6 +731,9 @@ void MainWindow::createDavisonChart() {
     relationshipInfo["person2"] = name2 + " " + surname2;
     relationshipInfo["displayName"] = "Davison Chart: " + davisonFirstName + " & " + davisonLastName;
     m_currentRelationshipInfo = relationshipInfo;
+    // Recalculating afterward would silently redo this same midpoint calculation, which
+    // is harmless but pointless and easy to mistake for verifying the chart - disable it.
+    m_calculateButton->setEnabled(false);
 
     QJsonObject davisonBirthInfo;
     davisonBirthInfo["firstName"] = davisonFirstName;

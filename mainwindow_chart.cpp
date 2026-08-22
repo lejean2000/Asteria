@@ -65,6 +65,9 @@ void MainWindow::calculateChart()
     m_currentNatalChartData = QJsonObject();
     m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
+    m_calculateButton->setEnabled(true); // Re-enable in case a relationship chart had disabled it
+    m_interpretations = QJsonArray(); // Discard interpretations from any previously displayed chart
+    renderAllInterpretations();
 
     m_chartRenderer->scene()->clear();
 

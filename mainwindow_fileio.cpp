@@ -73,6 +73,7 @@ void MainWindow::newChart() {
     m_progressionYear = 0;
     m_interpretations = QJsonArray();
     m_currentRelationshipInfo = QJsonObject();  // Reset relationship info
+    m_calculateButton->setEnabled(true); // Re-enable in case a relationship chart had disabled it
 
     // Clear chart renderer
     m_chartRenderer->scene()->clear();
@@ -293,6 +294,11 @@ void MainWindow::loadChart() {
             if (saveData.contains("relationshipInfo") && saveData["relationshipInfo"].isObject()) {
                 m_currentRelationshipInfo = saveData["relationshipInfo"].toObject();
 
+                // Recalculating a relationship chart via the plain Calculate button would
+                // discard its composite/Davison-specific data and replace it with an
+                // unrelated calculation, so keep the button disabled while one is loaded.
+                m_calculateButton->setEnabled(false);
+
                 // Set window title based on relationship info
                 if (m_currentRelationshipInfo.contains("displayName")) {
                     setWindowTitle("Asteria - Astrological Chart Analysis - " +
@@ -305,6 +311,7 @@ void MainWindow::loadChart() {
                 // progression save has natalChartData but no relationshipInfo,
                 // so clearing them here would wipe a just-loaded bi-wheel.
                 m_currentRelationshipInfo = QJsonObject();
+                m_calculateButton->setEnabled(true);
 
                 // Set default window title for natal chart
                 QString name = first_name->text();
