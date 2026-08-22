@@ -644,6 +644,7 @@ void MainWindow::setupInputDock() {
 void MainWindow::setupInterpretationDock() {
     // Create interpretation dock widget
     m_interpretationDock = new QDockWidget("Chart Interpretation", this);
+    m_interpretationDock->setObjectName("Chart Interpretation");
     m_interpretationDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     m_interpretationDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetClosable);
 

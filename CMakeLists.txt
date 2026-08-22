@@ -265,3 +265,21 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/icons/asteria-icon-512.png"
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(Asteria)
 endif()
+
+# Deploy Qt DLLs and QML modules (incl. QtLocation/QtPositioning for map.qml)
+# next to the built exe, so the build dir stays runnable without a manual
+# windeployqt pass after every build.
+if(WIN32 AND NOT FLATHUB_BUILD)
+    get_target_property(_qt_qmake_exe Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+    get_filename_component(_qt_bin_dir "${_qt_qmake_exe}" DIRECTORY)
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
+
+    if(WINDEPLOYQT_EXECUTABLE)
+        add_custom_command(TARGET Asteria POST_BUILD
+            COMMAND "${WINDEPLOYQT_EXECUTABLE}" --qmldir "${CMAKE_SOURCE_DIR}" "$<TARGET_FILE:Asteria>"
+            COMMENT "Running windeployqt to deploy Qt DLLs and QML modules"
+        )
+    else()
+        message(WARNING "windeployqt not found next to Qt's qmake; Qt DLLs/QML modules will not be auto-deployed to the build directory.")
+    endif()
+endif()
