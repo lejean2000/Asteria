@@ -1,33 +1,41 @@
-# Asteria - Astrological Chart Calculator and Analyzer
+# Asteria L - Astrological Chart Calculator with AI Interpretations
 
-![Asteria Screenshot](screenshots/Screenshot_main.png)
+![Asteria Screenshot](screenshots/Screenshot_main.jpg)
 
-Asteria is a comprehensive astrological chart application that combines traditional astrology with modern AI technology. Calculate, visualize, and interpret natal charts with precision and insight.
+Asteria L is a comprehensive astrological chart application that combines traditional astrology with modern AI technology. Calculate, visualize, and interpret natal charts, transits, progressions, returns, and relationship charts with precision and insight.
 
-Available in Flathub:
-https://flathub.org/en/apps/search?q=alamahant
+This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by Alamahant, adding:
+
+- A **dual progressed/natal bi-wheel chart** with progressed-to-natal interaspects
+- A longer, in-depth **natal chart AI reading** and **improved transit interpretations**
+- Every AI reading is saved as a structured entry (chart, transit, or info) with timestamp, model name, and transit period, and is **backward compatible** with old save files
+- **Collapsible headers** in the interpretation window so multiple readings stay organized
+- AI reasoning set to **high effort** with higher default API limits
+- A managed **Windows installer** (Inno Setup) with the MSVC runtime and ephemeris data bundled
+- Configurable Swiss Ephemeris paths at build time, editable lat/lon fields, planet icons in the modalities window
 
 ## Features
 
 - **Natal Chart Calculation**: Generate accurate birth charts with precise planetary positions
+- **Secondary Progression (Dual Bi-Wheel)**: Calculate a progressed chart for any age, overlaid with the natal chart, including a progressed-to-natal interaspect table and its own AI reading
 - **Interactive Chart Display**: Visually explore your astrological chart with an intuitive interface
 - **Aspect Analysis**: Examine the relationships between planets with detailed aspect tables
 - **House and Sign Placements**: View planetary positions by house and zodiac sign
 - **Element & Modality Balance**: Analyze the distribution of elements and modalities in your chart
 - **AI-Powered Interpretations**: Receive personalized chart readings using advanced AI technology
+  - Long-form natal readings based on a 130-line structured prompt
+  - Enhanced transit interpretations with period-aware context
+  - Interpretations stored as typed, timestamped entries with collapsible headers
 - **Modern UI**: Clean, user-friendly interface suitable for both beginners and experienced astrologers
 - **Extended Time Range**: Calculate charts from 3000 BC to 3000 AD with high precision
-- **Relationship Charts**: Compare natal charts with synastry and composite analysis
+- **Relationship Charts**: Compare natal charts with synastry, composite, and Davison analysis
+- **Windows Installer**: One-click setup that bundles Qt libraries, MSVC runtime, and ephemeris data
 
 ## Installation
 
-### Flatpak
+### Windows
 
-Asteria is available as a Flatpak on Flathub.
-
-```bash
-flatpak install flathub io.github.alamahant.Asteria
-```
+Download the latest installer from the [Releases page](https://github.com/lejean2000/Asteria/releases) and run `AsteriaL_x.x_Setup.exe`. The installer bundles the application, Qt libraries, the Visual C++ runtime, and the Swiss Ephemeris data files.
 
 ### From Source
 
@@ -37,22 +45,32 @@ To build from source:
 - Configure and build with CMake
 - Install
 
+Build requirements: CMake + Ninja, MSVC 2022 BuildTools, Qt 6, and the Swiss Ephemeris source. The Swiss Ephemeris data path is configurable via CMake options.
+
+### Original Project on Flathub
+
+The upstream [Asteria](https://github.com/alamahant/Asteria) project remains available on Flathub:
+
+```bash
+flatpak install flathub io.github.alamahant.Asteria
+```
+
 ## Usage
 
-- Launch Asteria from your applications menu
+- Launch Asteria L from your applications menu
 - Enter birth details (date, time, and location)
 - Generate your natal chart
 - Explore different aspects of your chart using the tabbed interface
 - Request AI interpretations for deeper insights into your astrological profile
-
+- Open multiple windows and drag-and-drop charts between them (Ctrl + Left-Click)
 
 ## Technical Details
 
-Asteria is built with:
-- Qt for the user interface
-- C++ for core functionality
+Asteria L is built with:
+- Qt 6 for the user interface
+- C++17 for core functionality
 - Swiss Ephemeris for astrological calculations
-- AI integration for chart interpretations
+- OpenAI-compatible AI API (works with Mistral, OpenAI, Groq, Ollama, OpenRouter, and more) for chart interpretations
 
 ## Contributing
 
@@ -65,7 +83,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-**Important License Update (May 16, 2024)**: This project is now licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) to comply with the licensing requirements of Swiss Ephemeris. The Flatpak distribution on Flathub has been updated to reflect this license change.
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) to comply with the licensing requirements of Swiss Ephemeris.
 
 See the LICENSE file for details.
 
@@ -91,18 +109,11 @@ See the LICENSE file for details.
 - Used for the application's user interface and cross-platform compatibility
 - https://www.qt.io/
 
-### Mistral AI
-- Integration for chart interpretations
-- https://mistral.ai/
+### Original Project
+- [Asteria](https://github.com/alamahant/Asteria) by Alamahant - the upstream project this fork is based on
 
 ## Contact
 
-Project Link: [https://github.com/alamahant/Asteria](https://github.com/alamahant/Asteria)
+Project Link: [https://github.com/lejean2000/Asteria](https://github.com/lejean2000/Asteria)
 
 > "The cosmos is within us. We are made of star-stuff." - Carl Sagan
-
-
-
-
-
-
