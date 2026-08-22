@@ -72,12 +72,15 @@ void AspectarianWidget::updateData(const ChartData &chartData)
 
 void AspectarianWidget::updateDualData(const ChartData &natal,
                                        const ChartData &progressed,
-                                       const QVector<AspectData> &interAspects)
+                                       const QVector<AspectData> &interAspects,
+                                       const QString &ownAspectsTabLabel,
+                                       const QString &interAspectsTabLabel)
 {
-    m_tabWidget->setTabText(0, "Prog → Prog");
+    m_tabWidget->setTabText(0, ownAspectsTabLabel);
+    m_tabWidget->setTabText(1, interAspectsTabLabel);
     m_tabWidget->setTabVisible(1, true);
     m_tabWidget->tabBar()->setVisible(true);
-    m_tabWidget->setCurrentIndex(1);   // default: Prog → Natal
+    m_tabWidget->setCurrentIndex(1);   // default: interaspects tab
 
     fillAspectTable(m_table, progressed);           // Tab 0: within-progressed aspects
     fillInterTable(m_interTable, natal, progressed, interAspects);  // Tab 1: interaspects

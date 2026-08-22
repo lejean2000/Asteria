@@ -1035,7 +1035,18 @@ void ChartRenderer::drawHouseRing() {
     double zodiacOuterRadius = outerRadius;
     double houseRingInnerRadius = zodiacOuterRadius + 10; // Small gap between zodiac and house ring
     double houseRingOuterRadius = houseRingInnerRadius + DEFAULT_WHEEL_THICKNESS; // Width of house ring
+    drawHouseRingForHouses(m_chartData.houses, houseRingInnerRadius, houseRingOuterRadius, QString());
+}
 
+// Numbered, element-colored house ring for one person's houses, drawn between
+// innerRadius and outerRadius. Reused for the single-chart ring (drawHouseRing())
+// and, twice, for the bi-wheel (drawDualHouseRings()). The rotation anchor
+// (refAsc) is always m_chartData's House 1, matching longitudeToPoint(), so a
+// ring drawn for the "other" person's houses still lines up with its planets.
+void ChartRenderer::drawHouseRingForHouses(const QVector<HouseData> &houses,
+                                            double houseRingInnerRadius,
+                                            double houseRingOuterRadius,
+                                            const QString &tooltipSuffix) {
     // Draw the house ring (outer circle)
     QGraphicsEllipseItem *houseRingOuter = new QGraphicsEllipseItem(
         -houseRingOuterRadius, -houseRingOuterRadius,
@@ -1075,11 +1086,11 @@ void ChartRenderer::drawHouseRing() {
     };
 
     // Draw house numbers and extend house cusp lines
-    if (m_chartData.houses.size() == 12) {
+    if (houses.size() == 12) {
         double refAsc = (!m_chartData.houses.isEmpty() ? m_chartData.houses[0].longitude : getAscendantLongitude());
         for (int i = 0; i < 12; i++) {
-            const HouseData &currentHouse = m_chartData.houses[i];
-            const HouseData &nextHouse = m_chartData.houses[(i + 1) % 12];
+            const HouseData &currentHouse = houses[i];
+            const HouseData &nextHouse = houses[(i + 1) % 12];
 
             // Calculate the middle angle of the house
             double currentLongitude = currentHouse.longitude;
@@ -1180,6 +1191,7 @@ void ChartRenderer::drawHouseRing() {
             // Set Tooltip to display also in-sign degree
             QString cuspInfo = QString("@ %1").arg(currentHouse.sign);
             QString tooltip = houseTooltips[i] + QString("\nCusp: %1").arg(cuspInfo);
+            if (!tooltipSuffix.isEmpty()) tooltip += QString(" (%1)").arg(tooltipSuffix);
             houseItem->setToolTip(tooltip);
             //
             m_scene->addItem(houseItem);
@@ -1248,13 +1260,16 @@ void ChartRenderer::renderDualChart()
     divider->setZValue(1);
     m_scene->addItem(divider);
 
-    // 3. Natal house cusps (center → dividing ring)
+    // 3-4. House cusp lines + numbered house rings for both wheels. Gated
+    // together by "Show House Cusps" (previously only the inner/natal cusp
+    // lines respected this setting, leaving the outer/progressed lines always
+    // on regardless - now both sides are consistent, matching single-chart behavior).
     if (m_showHouseCusps) {
-        drawNatalHouseCuspsDual(dividingRadius);
+        // Leave room for Person A's numbered ring, drawn just inside the dividing ring.
+        drawNatalHouseCuspsDual(dividingRadius - DEFAULT_WHEEL_THICKNESS);
+        drawProgressedHouseCusps(zodiacInner, dividingRadius);
+        drawDualHouseRings();
     }
-
-    // 4. Progressed house cusps (dividing ring → zodiac inner edge), dotted blue
-    drawProgressedHouseCusps(zodiacInner, dividingRadius);
 
     // 5. Natal planets in inner zone
     double natalBase = dividingRadius * 0.70;
@@ -1272,6 +1287,23 @@ void ChartRenderer::renderDualChart()
     if (m_showAspects) {
         drawInterAspects();
     }
+}
+
+// Numbered house rings for both wheels: Person A/natal just inside the dividing
+// ring, Person B/progressed just outside the zodiac band (same spot the
+// single-chart ring uses). See drawHouseRingForHouses().
+void ChartRenderer::drawDualHouseRings()
+{
+    double outerRadius    = m_chartSize / 2.0;
+    double dividingRadius = outerRadius * 0.58;
+
+    double personAOuter = dividingRadius;
+    double personAInner = dividingRadius - DEFAULT_WHEEL_THICKNESS;
+    drawHouseRingForHouses(m_chartData.houses, personAInner, personAOuter, QStringLiteral("Natal"));
+
+    double personBInner = outerRadius + 10;
+    double personBOuter = personBInner + DEFAULT_WHEEL_THICKNESS;
+    drawHouseRingForHouses(m_progressedChartData.houses, personBInner, personBOuter, QStringLiteral("Prog"));
 }
 
 void ChartRenderer::drawNatalHouseCuspsDual(double outerLimit)

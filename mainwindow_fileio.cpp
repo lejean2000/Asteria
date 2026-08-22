@@ -208,9 +208,13 @@ void MainWindow::loadChart() {
                 m_currentChartData = saveData["chartData"].toObject();
 
                 if (saveData.contains("natalChartData") && saveData["natalChartData"].isObject()) {
-                    // ── Secondary progression bi-wheel ──────────────────────
+                    // ── Bi-wheel chart (Secondary Progression or Synastry) ──
                     m_currentNatalChartData = saveData["natalChartData"].toObject();
                     m_progressionYear       = saveData.value("progressionYear").toInt();
+
+                    AsteriaGlobals::lastGeneratedChartType =
+                        saveData.value("chartType").toString("Secondary Progression");
+                    const bool isSynastry = (AsteriaGlobals::lastGeneratedChartType == "Synastry");
 
                     ChartData natal      = filterAdditionalBodies(convertJsonToChartData(m_currentNatalChartData));
                     ChartData progressed = filterAdditionalBodies(convertJsonToChartData(m_currentChartData));
@@ -220,12 +224,21 @@ void MainWindow::loadChart() {
                     m_chartRenderer->setDualChartData(natal, progressed, interAspects);
                     m_chartRenderer->renderChart();
 
-                    m_planetListWidget->updateDualData(natal, progressed);
-                    m_aspectarianWidget->updateDualData(natal, progressed, interAspects);
-                    m_modalityElementWidget->updateDualData(natal, progressed);
+                    if (isSynastry) {
+                        QJsonObject relInfo = saveData["relationshipInfo"].toObject();
+                        QString label1 = relInfo.value("person1").toString("Person A");
+                        QString label2 = relInfo.value("person2").toString("Person B");
+                        m_planetListWidget->updateDualData(natal, progressed, label1, label2);
+                        m_aspectarianWidget->updateDualData(natal, progressed, interAspects,
+                                                            label2 + " Aspects", label1 + " ↔ " + label2);
+                        m_modalityElementWidget->updateDualData(natal, progressed, label1, label2);
+                    } else {
+                        m_planetListWidget->updateDualData(natal, progressed);
+                        m_aspectarianWidget->updateDualData(natal, progressed, interAspects);
+                        m_modalityElementWidget->updateDualData(natal, progressed);
+                    }
 
                     updateChartDetailsTables(m_currentChartData);
-                    AsteriaGlobals::lastGeneratedChartType = "Secondary Progression";
                 } else {
                     // ── Regular single chart ────────────────────────────────
                     AsteriaGlobals::lastGeneratedChartType =

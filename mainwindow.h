@@ -148,8 +148,8 @@ private:
     MistralAPI m_mistralApi;
     // Current chart data
     QJsonObject m_currentChartData;
-    QJsonObject m_currentNatalChartData;   // non-empty only for bi-wheel (secondary progression)
-    int         m_progressionYear = 0;     // the progression year used for the bi-wheel
+    QJsonObject m_currentNatalChartData;   // non-empty only for bi-wheel charts (Secondary Progression, Synastry)
+    int         m_progressionYear = 0;     // the progression year used for the bi-wheel (0 / unused for Synastry)
     QJsonArray m_interpretations;
     bool m_chartCalculated;
     QDate getBirthDate() const;

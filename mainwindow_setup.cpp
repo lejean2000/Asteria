@@ -966,9 +966,6 @@ void MainWindow::setupMenus()
     relationshipMenu->addAction(davisonAction);
     relationshipMenu->addAction(synastryAction);
 
-    // Disable synastry for future implementation
-    synastryAction->setEnabled(false);
-
     // Connect actions to slots
     connect(compositeAction, &QAction::triggered, this, &MainWindow::createCompositeChart);
     connect(davisonAction, &QAction::triggered, this, &MainWindow::createDavisonChart);

@@ -13,7 +13,9 @@ class ElementModalityWidget : public QWidget {
 public:
     explicit ElementModalityWidget(QWidget *parent = nullptr);
     void updateData(const ChartData &chartData);
-    void updateDualData(const ChartData &natal, const ChartData &progressed);
+    void updateDualData(const ChartData &natal, const ChartData &progressed,
+                        const QString &natalTabLabel = "Natal",
+                        const QString &progressedTabLabel = "Progressed");
 
 private:
     QTabWidget   *m_tabWidget;

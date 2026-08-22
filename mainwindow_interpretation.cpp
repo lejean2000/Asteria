@@ -50,6 +50,9 @@ void MainWindow::getInterpretation() {
     const bool isSecondaryProgression =
         (AsteriaGlobals::lastGeneratedChartType == "Secondary Progression"
          && !m_currentNatalChartData.isEmpty());
+    const bool isSynastry =
+        (AsteriaGlobals::lastGeneratedChartType == "Synastry"
+         && !m_currentNatalChartData.isEmpty());
 
     if (!AsteriaGlobals::activeModelLoaded) {
         m_mistralApi.loadActiveModel();
@@ -81,8 +84,15 @@ void MainWindow::getInterpretation() {
         QJsonArray out;
         for (const QJsonValue &v : aspects) {
             QJsonObject a = v.toObject();
-            if (!additionalBodies.contains(a["planet1"].toString())
-                && !additionalBodies.contains(a["planet2"].toString())) {
+            // Support both the planet1/planet2 (secondary progression) and
+            // personA/personB (synastry) key naming. Use .value() rather than
+            // operator[] - the latter auto-inserts a null entry for missing
+            // keys on a non-const QJsonObject, corrupting the output object.
+            QString bodyA = a.contains("planet1") ? a.value("planet1").toString()
+                                                   : a.value("personA").toString();
+            QString bodyB = a.contains("planet2") ? a.value("planet2").toString()
+                                                   : a.value("personB").toString();
+            if (!additionalBodies.contains(bodyA) && !additionalBodies.contains(bodyB)) {
                 out.append(a);
             }
         }
@@ -166,6 +176,88 @@ void MainWindow::getInterpretation() {
             keepOnlyMajors(filterAspectsForBodies(interAspectsJson));
         dataToSend["progressedToProgressedAspects"] =
             keepOnlyMajors(filterAspectsForBodies(m_currentChartData["aspects"].toArray()));
+    }
+    else if (isSynastry) {
+        // Bi-wheel payload: Person A = m_currentNatalChartData (outer wheel),
+        // Person B = m_currentChartData (inner wheel) - see createSynastryChart().
+        // Aspects restricted to the five major Ptolemaic types.
+        static const QStringList majorAspects = {
+            "Conjunction", "Opposition", "Square", "Trine", "Sextile"
+        };
+        auto keepOnlyMajors = [&](const QJsonArray &aspects) -> QJsonArray {
+            QJsonArray out;
+            for (const QJsonValue &v : aspects) {
+                QJsonObject a = v.toObject();
+                if (majorAspects.contains(a["aspectType"].toString()))
+                    out.append(a);
+            }
+            return out;
+        };
+
+        // Given a longitude, find which house of the OTHER person it falls into
+        // (the synastry house overlay). Mirrors ChartCalculator::findHouse (private).
+        auto makeFindHouse = [](const QJsonArray &houses) {
+            return [houses](double longitude) -> QString {
+                longitude = fmod(longitude, 360.0);
+                if (longitude < 0.0) longitude += 360.0;
+                for (int i = 0; i < houses.size(); ++i) {
+                    int j = (i + 1) % houses.size();
+                    double start = houses[i].toObject()["longitude"].toDouble();
+                    double end   = houses[j].toObject()["longitude"].toDouble();
+                    if (end < start) {
+                        if (longitude >= start || longitude < end)
+                            return houses[i].toObject()["id"].toString();
+                    } else {
+                        if (longitude >= start && longitude < end)
+                            return houses[i].toObject()["id"].toString();
+                    }
+                }
+                return QStringLiteral("House1");
+            };
+        };
+        auto findHouseInB = makeFindHouse(m_currentChartData["houses"].toArray());
+        auto findHouseInA = makeFindHouse(m_currentNatalChartData["houses"].toArray());
+
+        QJsonArray personAPlanets;
+        for (const QJsonValue &v : filterPlanets(m_currentNatalChartData["planets"].toArray())) {
+            QJsonObject p = v.toObject();
+            p["houseOverlay"] = findHouseInB(p["longitude"].toDouble());
+            personAPlanets.append(p);
+        }
+        QJsonObject personAJson;
+        personAJson["angles"]  = m_currentNatalChartData["angles"].toArray();
+        personAJson["planets"] = personAPlanets;
+
+        QJsonArray personBPlanets;
+        for (const QJsonValue &v : filterPlanets(m_currentChartData["planets"].toArray())) {
+            QJsonObject p = v.toObject();
+            p["houseOverlay"] = findHouseInA(p["longitude"].toDouble());
+            personBPlanets.append(p);
+        }
+        QJsonObject personBJson;
+        personBJson["angles"]  = m_currentChartData["angles"].toArray();
+        personBJson["planets"] = personBPlanets;
+
+        ChartData personA = convertJsonToChartData(m_currentNatalChartData);
+        ChartData personB = convertJsonToChartData(m_currentChartData);
+        QVector<AspectData> synastryAspects =
+            m_chartDataManager.calculateInteraspects(personB, personA);
+
+        QJsonArray synastryAspectsJson;
+        for (const AspectData &a : synastryAspects) {
+            QJsonObject jo;
+            jo["personB"]    = toString(a.planet1);
+            jo["personA"]    = toString(a.planet2);
+            jo["aspectType"] = toString(a.aspectType);
+            jo["orb"]        = a.orb;
+            synastryAspectsJson.append(jo);
+        }
+
+        dataToSend["personAName"] = m_currentRelationshipInfo.value("person1").toString("Person A");
+        dataToSend["personBName"] = m_currentRelationshipInfo.value("person2").toString("Person B");
+        dataToSend["personA"] = personAJson;
+        dataToSend["personB"] = personBJson;
+        dataToSend["synastryAspects"] = keepOnlyMajors(filterAspectsForBodies(synastryAspectsJson));
     }
     else {
         // Single-chart payload (original path).

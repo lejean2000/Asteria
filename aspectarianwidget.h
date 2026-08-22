@@ -15,7 +15,9 @@ public:
     void updateData(const ChartData &chartData);
     void updateDualData(const ChartData &natal,
                         const ChartData &progressed,
-                        const QVector<AspectData> &interAspects);
+                        const QVector<AspectData> &interAspects,
+                        const QString &ownAspectsTabLabel = "Prog → Prog",
+                        const QString &interAspectsTabLabel = "Prog → Natal");
     QString planetSymbol(const QString &planetName);
 
 private:

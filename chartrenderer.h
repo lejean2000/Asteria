@@ -109,6 +109,11 @@ private:
     void renderDualChart();
     void drawNatalHouseCuspsDual(double outerLimit);
     void drawProgressedHouseCusps(double outerLimit, double innerLimit);
+    void drawDualHouseRings();
+    void drawHouseRingForHouses(const QVector<HouseData> &houses,
+                                double houseRingInnerRadius,
+                                double houseRingOuterRadius,
+                                const QString &tooltipSuffix);
     void drawPlanetsInZone(const QVector<PlanetData> &planets, double baseRadius,
                            double minRadius, QMap<QString, PlanetItem*> &itemMap);
     void drawInterAspects();

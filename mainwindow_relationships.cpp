@@ -782,7 +782,160 @@ void MainWindow::createDavisonChart() {
 
 void MainWindow::createSynastryChart()
 {
+    QMessageBox::information(this, "Select Charts",
+                             "Please select two natal charts to create a Synastry chart.");
+    QString appDir = AsteriaGlobals::appDir;
+    QDir dir;
+    if (!dir.exists(appDir))
+        dir.mkpath(appDir);
 
+    QStringList filePaths = QFileDialog::getOpenFileNames(
+                this, "Select Two Charts", appDir, "Astrological Chart (*.astr)");
+
+    if (filePaths.size() != 2) {
+        QMessageBox::warning(this, "Invalid Selection",
+                             "You must select exactly two charts.");
+        return;
+    }
+
+    QJsonObject saveData1, saveData2;
+    QFile file1(filePaths[0]);
+    if (file1.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(file1.readAll());
+        file1.close();
+        if (doc.isObject()) {
+            saveData1 = doc.object();
+        } else {
+            QMessageBox::critical(this, "Load Error", "Invalid chart file format: " + filePaths[0]);
+            return;
+        }
+    } else {
+        QMessageBox::critical(this, "Load Error", "Could not open chart file " + filePaths[0]);
+        return;
+    }
+
+    QFile file2(filePaths[1]);
+    if (file2.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(file2.readAll());
+        file2.close();
+        if (doc.isObject()) {
+            saveData2 = doc.object();
+        } else {
+            QMessageBox::critical(this, "Load Error", "Invalid chart file format: " + filePaths[1]);
+            return;
+        }
+    } else {
+        QMessageBox::critical(this, "Load Error", "Could not open chart file " + filePaths[1]);
+        return;
+    }
+
+    QJsonObject birthInfo1 = saveData1["birthInfo"].toObject();
+    QJsonObject birthInfo2 = saveData2["birthInfo"].toObject();
+    QString name1 = birthInfo1["firstName"].toString();
+    QString surname1 = birthInfo1["lastName"].toString();
+    QString name2 = birthInfo2["firstName"].toString();
+    QString surname2 = birthInfo2["lastName"].toString();
+    QString displayName1 = (name1 + " " + surname1).trimmed();
+    QString displayName2 = (name2 + " " + surname2).trimmed();
+    if (displayName1.isEmpty()) displayName1 = "Person A";
+    if (displayName2.isEmpty()) displayName2 = "Person B";
+    QString label1 = name1.isEmpty() ? displayName1 : name1;
+    QString label2 = name2.isEmpty() ? displayName2 : name2;
+
+    // Reset chart state
+    m_chartCalculated = false;
+    m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
+    m_currentRelationshipInfo = QJsonObject();
+    m_chartRenderer->scene()->clear();
+
+    // Person A plays the "natal" (outer wheel) role, Person B the "progressed"
+    // (inner wheel) role in the generic bi-wheel infrastructure shared with
+    // Secondary Progression - see setDualChartData()/calculateInteraspects().
+    ChartData personA = filterAdditionalBodies(convertJsonToChartData(saveData1["chartData"].toObject()));
+    ChartData personB = filterAdditionalBodies(convertJsonToChartData(saveData2["chartData"].toObject()));
+
+    // Interaspects: planet1 = Person B, planet2 = Person A (matches the
+    // (progressed, natal) argument convention so a reload via loadChart()
+    // recomputes the identical table - see CLAUDE.md's bi-wheel section).
+    QVector<AspectData> synastryAspects = m_chartDataManager.calculateInteraspects(personB, personA);
+
+    // ── Render bi-wheel ──────────────────────────────────────────────────────
+    m_chartRenderer->setDualChartData(personA, personB, synastryAspects);
+    m_chartRenderer->renderChart();
+
+    // ── Update side panels ───────────────────────────────────────────────────
+    m_planetListWidget->updateDualData(personA, personB, label1, label2);
+    m_aspectarianWidget->updateDualData(personA, personB, synastryAspects,
+                                        label2 + " Aspects", label1 + " ↔ " + label2);
+    m_modalityElementWidget->updateDualData(personA, personB, label1, label2);
+
+    // Store chart JSONs (Person B = "chartData"/detail slot, Person A = "natalChartData"/base slot)
+    m_currentChartData      = saveData2["chartData"].toObject();
+    m_currentNatalChartData = saveData1["chartData"].toObject();
+    updateChartDetailsTables(m_currentChartData);
+
+    QJsonObject relationshipInfo;
+    relationshipInfo["type"] = "Synastry";
+    relationshipInfo["person1"] = displayName1;
+    relationshipInfo["person2"] = displayName2;
+    relationshipInfo["displayName"] = "Synastry: " + displayName1 + " & " + displayName2;
+    m_currentRelationshipInfo = relationshipInfo;
+    // Recalculating via the plain Calculate button would discard this two-chart
+    // comparison and replace it with an unrelated single calculation.
+    m_calculateButton->setEnabled(false);
+
+    first_name->setText(displayName1);
+    last_name->setText("& " + displayName2);
+
+    m_chartCalculated = true;
+    AsteriaGlobals::lastGeneratedChartType = "Synastry";
+    m_getInterpretationButton->setEnabled(true);
+    // Transit/return predictions don't apply to a static two-person overlay.
+    getPredictionButton->setEnabled(false);
+    getTransitsButton->setEnabled(false);
+
+    m_interpretations = QJsonArray();
+    renderAllInterpretations();
+    statusBar()->showMessage("Synastry chart calculated successfully", 3000);
+
+    QString infoText = QString(
+        "Synastry Chart (Bi-Wheel)\n"
+        "%1 (outer wheel) & %2 (inner wheel)\n\n")
+        .arg(displayName1)
+        .arg(displayName2);
+    appendInterpretationEntry("chart_info", "Synastry", infoText);
+
+    // Save the synastry chart
+    QJsonObject synastrySaveData;
+    synastrySaveData["chartData"] = m_currentChartData;
+    synastrySaveData["natalChartData"] = m_currentNatalChartData;
+    synastrySaveData["chartType"] = AsteriaGlobals::lastGeneratedChartType;
+    synastrySaveData["relationshipInfo"] = relationshipInfo;
+
+    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmm");
+    QString outputFileName = QString("Synastry_%1_%2_%3.astr")
+            .arg(name1 + surname1)
+            .arg(name2 + surname2)
+            .arg(timestamp);
+    QDir relationshipDir(appDir + "/RelationshipCharts");
+    if (!relationshipDir.exists()) {
+        relationshipDir.mkpath(".");
+    }
+    QString outputFilePath = appDir + "/RelationshipCharts/" + outputFileName;
+    QFile outputFile(outputFilePath);
+    if (outputFile.open(QIODevice::WriteOnly)) {
+        QJsonDocument doc(synastrySaveData);
+        outputFile.write(doc.toJson(QJsonDocument::Indented));
+        outputFile.close();
+        QMessageBox::information(this, "Chart Saved", "Synastry chart saved to:\n" + outputFilePath);
+    } else {
+        QMessageBox::warning(this, "Save Failed", "Could not save Synastry chart to:\n" + outputFilePath);
+    }
+
+    populateInfoOverlay();
+    setWindowTitle("Asteria - Astrological Chart Analysis - " + relationshipInfo["displayName"].toString());
 }
 
 void MainWindow::showRelationshipChartsDialog()
@@ -841,14 +994,29 @@ void MainWindow::showRelationshipChartsDialog()
             <li>A more dynamic view of the relationship as an evolving entity</li>
         </ul>
 
+        <h3>Synastry Charts</h3>
+        <p>A Synastry Chart overlays two people's real natal charts as a bi-wheel and shows the aspects each person's planets make to the other person's planets - no midpoint or hypothetical entity is created.</p>
+
+        <p><b>How it's calculated:</b> The two natal charts are drawn as a bi-wheel (one on the outer wheel, one on the inner wheel), and interaspects are calculated between every planet pair across the two charts. Each planet's house overlay - which house it falls into in the other person's chart - is also considered.</p>
+
+        <p><b>Purpose:</b> Synastry reveals how two people's individual natal energies interact directly with one another - attractions, frictions, and areas of natural support or challenge.</p>
+
+        <p><b>Insights offered:</b></p>
+        <ul>
+            <li>Where the two people's planets support or challenge each other</li>
+            <li>Which areas of life (houses) each person activates in the other</li>
+            <li>Core attractions and points of friction in the relationship</li>
+        </ul>
+
         <h3>Which Chart to Use?</h3>
-        <p>Both charts offer valuable insights:</p>
+        <p>All three techniques offer valuable, complementary insights:</p>
         <ul>
             <li><b>Composite:</b> Better for understanding the relationship's purpose and inherent dynamics</li>
             <li><b>Davison:</b> Better for timing events in the relationship and understanding its evolution</li>
+            <li><b>Synastry:</b> Better for understanding how the two individuals' own natal charts interact</li>
         </ul>
 
-        <p>For a complete relationship analysis, it's beneficial to examine both charts alongside the synastry (planet-to-planet aspects) between the individual natal charts.</p>
+        <p>For a complete relationship analysis, it's beneficial to examine all three techniques together.</p>
         )";
 
         textBrowser->setHtml(helpText);

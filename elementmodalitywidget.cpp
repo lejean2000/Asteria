@@ -239,11 +239,15 @@ void ElementModalityWidget::updateData(const ChartData &chartData)
              chartData);
 }
 
-void ElementModalityWidget::updateDualData(const ChartData &natal, const ChartData &progressed)
+void ElementModalityWidget::updateDualData(const ChartData &natal, const ChartData &progressed,
+                                           const QString &natalTabLabel,
+                                           const QString &progressedTabLabel)
 {
+    m_tabWidget->setTabText(0, natalTabLabel);
+    m_tabWidget->setTabText(1, progressedTabLabel);
     m_tabWidget->setTabVisible(1, true);
     m_tabWidget->tabBar()->setVisible(true);
-    m_tabWidget->setCurrentIndex(0);  // default: Natal
+    m_tabWidget->setCurrentIndex(0);  // default: first tab
 
     fillGrid(m_natalGridLayout, m_natalSignLabels,
              m_natalFireTotal,  m_natalEarthTotal,
