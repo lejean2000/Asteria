@@ -850,9 +850,10 @@ void MainWindow::createSynastryChart()
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
 
-    // Person A plays the "natal" (outer wheel) role, Person B the "progressed"
-    // (inner wheel) role in the generic bi-wheel infrastructure shared with
-    // Secondary Progression - see setDualChartData()/calculateInteraspects().
+    // Person A plays the "natal" (inner wheel) role, Person B the "progressed"
+    // (outer wheel) role in the generic bi-wheel infrastructure shared with
+    // Secondary Progression - see setDualChartData()/calculateInteraspects()
+    // and renderDualChart()'s inner/outer zone placement.
     ChartData personA = filterAdditionalBodies(convertJsonToChartData(saveData1["chartData"].toObject()));
     ChartData personB = filterAdditionalBodies(convertJsonToChartData(saveData2["chartData"].toObject()));
 
@@ -902,7 +903,7 @@ void MainWindow::createSynastryChart()
 
     QString infoText = QString(
         "Synastry Chart (Bi-Wheel)\n"
-        "%1 (outer wheel) & %2 (inner wheel)\n\n")
+        "%1 (inner wheel) & %2 (outer wheel)\n\n")
         .arg(displayName1)
         .arg(displayName2);
     appendInterpretationEntry("chart_info", "Synastry", infoText);

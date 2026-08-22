@@ -178,8 +178,8 @@ void MainWindow::getInterpretation() {
             keepOnlyMajors(filterAspectsForBodies(m_currentChartData["aspects"].toArray()));
     }
     else if (isSynastry) {
-        // Bi-wheel payload: Person A = m_currentNatalChartData (outer wheel),
-        // Person B = m_currentChartData (inner wheel) - see createSynastryChart().
+        // Bi-wheel payload: Person A = m_currentNatalChartData (inner wheel),
+        // Person B = m_currentChartData (outer wheel) - see createSynastryChart().
         // Aspects restricted to the five major Ptolemaic types.
         static const QStringList majorAspects = {
             "Conjunction", "Opposition", "Square", "Trine", "Sextile"
