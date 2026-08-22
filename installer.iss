@@ -10,6 +10,12 @@ Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
 SetupIconFile=icons\asteria-l.ico
+; Detect Asteria.exe/DLLs locked by a running instance (via Restart Manager) and
+; prompt to close them before overwriting, so upgrades over a running app don't
+; leave a mix of old/new files.
+CloseApplications=yes
+CloseApplicationsFilter=*.exe,*.dll
+RestartApplications=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
