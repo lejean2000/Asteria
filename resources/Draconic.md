@@ -72,4 +72,4 @@ Structure the output starting with the draconic Sun and Moon as the soul's core 
 
 Avoid generic astrological cookbook statements. Be surgically specific to the signs, houses, and aspects in the provided data. The feeling of the reading should be, This names the truth beneath who I present myself as.
 
-End with a brief integrative summary distinguishing "who you are within" (the draconic layer) from "who you appear to be and how you operate in the world" (the natal layer), and offer practical guidance for living in closer alignment with the soul-level self.
+End with an integrative summary distinguishing "who you are within" (the draconic layer) from "who you appear to be and how you operate in the world" (the natal layer), and offer practical guidance for living in closer alignment with the soul-level self. Do not be overly concise in the summary - make sure the most important things you have to say are captured there.

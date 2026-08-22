@@ -169,6 +169,40 @@ void MainWindow::displayChart(const QJsonObject &chartData) {
 }
 
 
+void MainWindow::refreshDualWheelDisplay()
+{
+    ChartData natal     = filterAdditionalBodies(convertJsonToChartData(m_currentNatalChartData));
+    ChartData secondary = filterAdditionalBodies(convertJsonToChartData(m_currentChartData));
+    QVector<AspectData> interAspects = m_chartDataManager.calculateInteraspects(secondary, natal);
+
+    m_chartRenderer->setDualChartData(natal, secondary, interAspects);
+    m_chartRenderer->renderChart();
+
+    const bool isSynastry = (AsteriaGlobals::lastGeneratedChartType == "Synastry");
+    const bool isDraconic = (AsteriaGlobals::lastGeneratedChartType == "Draconic");
+
+    if (isSynastry) {
+        QString label1 = m_currentRelationshipInfo.value("person1").toString("Person A");
+        QString label2 = m_currentRelationshipInfo.value("person2").toString("Person B");
+        m_planetListWidget->updateDualData(natal, secondary, label1, label2);
+        m_aspectarianWidget->updateDualData(natal, secondary, interAspects,
+                                            label2 + " Aspects", label1 + " ↔ " + label2);
+        m_modalityElementWidget->updateDualData(natal, secondary, label1, label2);
+    } else if (isDraconic) {
+        m_planetListWidget->updateDualData(natal, secondary, "Natal", "Draconic");
+        m_aspectarianWidget->updateDualData(natal, secondary, interAspects,
+                                            "Draconic → Draconic", "Draconic → Natal");
+        m_modalityElementWidget->updateDualData(natal, secondary, "Natal", "Draconic");
+    } else {
+        m_planetListWidget->updateDualData(natal, secondary);
+        m_aspectarianWidget->updateDualData(natal, secondary, interAspects);
+        m_modalityElementWidget->updateDualData(natal, secondary);
+    }
+
+    updateChartDetailsTables(m_currentChartData);
+}
+
+
 void MainWindow::updateChartDetailsTables(const QJsonObject &chartData)
 {
     // Get table widgets

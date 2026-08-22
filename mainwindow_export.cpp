@@ -98,15 +98,39 @@ void MainWindow::getPrediction() {
     if (m_chartDataManager.getLastError().isEmpty()) {
         displayRawTransitData(transitData);
 
-        // Attach natal planets/angles so the AI has the birth chart context
-        if (m_currentChartData.contains("planets"))
-            transitData["natalPlanets"] = m_currentChartData["planets"];
-        if (m_currentChartData.contains("angles"))
-            transitData["natalAngles"] = m_currentChartData["angles"];
+        // Attach the TRUE natal chart as context, computed fresh from the
+        // birth-data fields - never from m_currentChartData, which may hold
+        // a derived chart (return / secondary progression / draconic /
+        // composite / davison / synastry) rather than the natal chart
+        // itself. Transits are always transits to the real natal chart,
+        // regardless of what chart type happens to be on screen.
+        QString houseSystem = m_houseSystemCombo->currentText();
+        QJsonObject natalChartData = m_chartDataManager.calculateChartAsJson(
+            birthDate, birthTime, utcOffset, latitude, longitude, houseSystem);
+
+        if (natalChartData.contains("planets")) {
+            QJsonArray natalPlanets = natalChartData["planets"].toArray();
+            if (!m_additionalBodiesCB->isChecked()) {
+                static const QStringList additionalBodies = {
+                    "Ceres", "Pallas", "Juno", "Vesta", "Lilith",
+                    "Vertex", "Part of Spirit", "East Point"
+                };
+                QJsonArray filtered;
+                for (const QJsonValue &v : natalPlanets) {
+                    if (!additionalBodies.contains(v.toObject()["id"].toString()))
+                        filtered.append(v);
+                }
+                natalPlanets = filtered;
+            }
+            transitData["natalPlanets"] = natalPlanets;
+        }
+        if (natalChartData.contains("angles"))
+            transitData["natalAngles"] = natalChartData["angles"];
 
         AsteriaGlobals::lastGeneratedChartType = "Transits";
 
         // Send to API for interpretation
+        m_aiWaitProgressBar->show();
         m_mistralApi.interpretTransits(transitData);
     } else {
         handleError("Transit calculation error: " + m_chartDataManager.getLastError());
@@ -122,6 +146,7 @@ void MainWindow::displayTransitInterpretation(const QString &interpretation) {
                               m_predictiveToEdit->text());
     statusBar()->showMessage("Transit interpretation complete", 3000);
     getPredictionButton->setEnabled(true);
+    m_aiWaitProgressBar->hide();
 }
 
 void MainWindow::populateInfoOverlay() {

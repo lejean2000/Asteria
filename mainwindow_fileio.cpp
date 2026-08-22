@@ -467,6 +467,7 @@ void MainWindow::handleError(const QString &errorMessage)
     statusBar()->showMessage("Error: " + errorMessage, 5000);
     getPredictionButton->setEnabled(true);
     m_getInterpretationButton->setEnabled(true);
+    m_aiWaitProgressBar->hide();
 }
 
 QString MainWindow::getChartFilePath(bool forSaving)

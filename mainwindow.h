@@ -58,6 +58,7 @@
 #include<QJsonDocument>
 #include<QJsonObject>
 #include<QProgressDialog>
+#include<QProgressBar>
 #include<QPoint>
 #include"donationdialog.h"
 #include "model.h"
@@ -82,6 +83,10 @@ private slots:
     // Chart calculation and display
     void calculateChart();
     void displayChart(const QJsonObject &chartData);
+    // Re-filter and re-render the currently displayed bi-wheel chart (Secondary
+    // Progression / Draconic / Synastry) - the dual-wheel counterpart to
+    // displayChart(), used when the additional-bodies filter is toggled.
+    void refreshDualWheelDisplay();
 
     // AI interpretation
     void getInterpretation();
@@ -175,6 +180,7 @@ private:
     QLineEdit* m_predictiveFromEdit;
     QLineEdit* m_predictiveToEdit;
     QPushButton *getPredictionButton;
+    QProgressBar *m_aiWaitProgressBar; // Indeterminate; shown while waiting on an AI reply (interpretation or prediction)
     QTableWidget *rawTransitTable;
     void displayRawTransitData(const QJsonObject &transitData);
 private slots:

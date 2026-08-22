@@ -563,7 +563,13 @@ void MainWindow::setupInputDock() {
         AsteriaGlobals::additionalBodiesEnabled = checked;
 
         if (m_chartCalculated) {
-            displayChart(m_currentChartData);
+            if (!m_currentNatalChartData.isEmpty()) {
+                // Bi-wheel chart (Secondary Progression / Draconic / Synastry) -
+                // displayChart() only knows how to render a single wheel.
+                refreshDualWheelDisplay();
+            } else {
+                displayChart(m_currentChartData);
+            }
         }
 
     });
@@ -629,10 +635,20 @@ void MainWindow::setupInputDock() {
     connect(getTransitsButton, &QPushButton::clicked, this, &MainWindow::CalculateTransits);
 
 
+    // Indeterminate progress bar shown while waiting on a (potentially slow) AI
+    // reply - chart interpretation or AI prediction. Hidden the rest of the time.
+    m_aiWaitProgressBar = new QProgressBar(inputWidget);
+    m_aiWaitProgressBar->setRange(0, 0); // indeterminate/busy
+    m_aiWaitProgressBar->setTextVisible(true);
+    m_aiWaitProgressBar->setFormat("Waiting for AI reply...");
+    m_aiWaitProgressBar->setToolTip("Waiting for AI reply...");
+    m_aiWaitProgressBar->hide();
+
     // Add widgets to main layout
     inputLayout->addWidget(birthGroup);
     inputLayout->addWidget(m_calculateButton);
     inputLayout->addWidget(predictiveGroup);
+    inputLayout->addWidget(m_aiWaitProgressBar);
     inputLayout->addStretch();
 
     // Set widget as dock content

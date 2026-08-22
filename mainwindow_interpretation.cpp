@@ -331,6 +331,7 @@ void MainWindow::getInterpretation() {
 
     m_getInterpretationButton->setEnabled(false);
     statusBar()->showMessage("Requesting interpretation...");
+    m_aiWaitProgressBar->show();
 
     m_mistralApi.interpretChart(dataToSend);
 }
@@ -339,6 +340,7 @@ void MainWindow::displayInterpretation(const QString &interpretation)
 {
     appendInterpretationEntry("ai_chart", AsteriaGlobals::lastGeneratedChartType, interpretation);
     m_getInterpretationButton->setEnabled(true);
+    m_aiWaitProgressBar->hide();
     statusBar()->showMessage("Interpretation received", 3000);
 }
 

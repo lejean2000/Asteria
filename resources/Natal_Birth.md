@@ -127,4 +127,4 @@ Structure the output clearly:
 1. Open with the natal Sun-Moon phase as the overarching life rhythm.
 2. Proceed through Ascendant/Chart Ruler, Luminaries, Personal Planets, Social Planets, Outer Planets, Nodal Axis, Additional Points, Syntheses, and MC/IC.
 3. **Be surgically specific** — use the exact sign, degree, house, and aspect data given. Every interpretation must name the houses of both bodies involved in an aspect.
-4. End with a brief integrative summary that offers a guiding metaphor for the life path, distilling the core archetypal story and practical advice for living the chart with consciousness and grace.
+4. End with an integrative summary that offers a guiding metaphor for the life path, distilling the core archetypal story and practical advice for living the chart with consciousness and grace. Do not be overly concise in the summary - make sure the most important things you have to say are captured there.
