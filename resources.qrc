@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>resources/AstromoonySans.ttf</file>
         <file>resources/Secondary_Progression.md</file>
+        <file>resources/Draconic.md</file>
         <file>resources/Zodiac_Signs.md</file>
         <file>resources/Davison_Relationship.md</file>
         <file>resources/Synastry.md</file>

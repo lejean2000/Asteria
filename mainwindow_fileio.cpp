@@ -215,6 +215,7 @@ void MainWindow::loadChart() {
                     AsteriaGlobals::lastGeneratedChartType =
                         saveData.value("chartType").toString("Secondary Progression");
                     const bool isSynastry = (AsteriaGlobals::lastGeneratedChartType == "Synastry");
+                    const bool isDraconic = (AsteriaGlobals::lastGeneratedChartType == "Draconic");
 
                     ChartData natal      = filterAdditionalBodies(convertJsonToChartData(m_currentNatalChartData));
                     ChartData progressed = filterAdditionalBodies(convertJsonToChartData(m_currentChartData));
@@ -232,6 +233,11 @@ void MainWindow::loadChart() {
                         m_aspectarianWidget->updateDualData(natal, progressed, interAspects,
                                                             label2 + " Aspects", label1 + " ↔ " + label2);
                         m_modalityElementWidget->updateDualData(natal, progressed, label1, label2);
+                    } else if (isDraconic) {
+                        m_planetListWidget->updateDualData(natal, progressed, "Natal", "Draconic");
+                        m_aspectarianWidget->updateDualData(natal, progressed, interAspects,
+                                                            "Draconic → Draconic", "Draconic → Natal");
+                        m_modalityElementWidget->updateDualData(natal, progressed, "Natal", "Draconic");
                     } else {
                         m_planetListWidget->updateDualData(natal, progressed);
                         m_aspectarianWidget->updateDualData(natal, progressed, interAspects);

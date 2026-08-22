@@ -284,6 +284,8 @@ private:
     // Secondary Progression Chart
     void calculateSecondaryProgression();
     void doSecondaryProgressionCalculation(int progressionYear);
+    // Draconic Chart
+    void calculateDraconicChart();
 
     int m_savedScrollPosition;
     QItemSelection m_savedSelection;

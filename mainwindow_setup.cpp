@@ -570,7 +570,7 @@ void MainWindow::setupInputDock() {
     birthLayout->addRow(m_additionalBodiesCB);
 
     // Calculate button
-    m_calculateButton = new QPushButton("Calculate Chart", inputWidget);
+    m_calculateButton = new QPushButton("Calculate Natal Chart", inputWidget);
     m_calculateButton->setIcon(QIcon::fromTheme("view-refresh"));
 
 
@@ -954,6 +954,13 @@ void MainWindow::setupMenus()
     // Create Tools menu
     QMenu *toolsMenu = menuBar()->addMenu("Tools");
 
+    QAction *natalChartAction = new QAction("Calculate Natal Chart", this);
+    natalChartAction->setToolTip("Calculate the natal chart for the current birth data");
+    natalChartAction->setStatusTip("Calculate the natal chart for the current birth data");
+    connect(natalChartAction, &QAction::triggered, this, &MainWindow::calculateChart);
+    toolsMenu->addAction(natalChartAction);
+    toolsMenu->addSeparator();
+
     // Create Relationship Charts submenu
     QMenu *relationshipMenu = toolsMenu->addMenu("Relationship Charts");
 
@@ -1103,6 +1110,12 @@ void MainWindow::setupMenus()
     secondaryProgressionAction->setShortcut(QKeySequence("Ctrl+G")); // Choose a shortcut that doesn't conflict
     connect(secondaryProgressionAction, &QAction::triggered, this, &MainWindow::calculateSecondaryProgression);
     toolsMenu->insertAction(nullptr, secondaryProgressionAction); // Add at the top of Tools menu
+
+    QAction *draconicChartAction = new QAction("Calculate Draconic Chart", this);
+    draconicChartAction->setToolTip("Calculate the draconic chart (natal rotated to the North Node) as a bi-wheel");
+    draconicChartAction->setStatusTip("Calculate the draconic bi-wheel for the current birth data");
+    connect(draconicChartAction, &QAction::triggered, this, &MainWindow::calculateDraconicChart);
+    toolsMenu->insertAction(nullptr, draconicChartAction); // Add at the top of Tools menu
 
     // Current Chart
     QAction *zodiacChartAction = new QAction("Calculate Zodiac Chart", this);

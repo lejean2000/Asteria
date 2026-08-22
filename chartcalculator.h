@@ -220,6 +220,12 @@ public:
                                               const QVector<PlanetData> &innerPlanets,
                                               double orbMax = 8.0) const;
 
+    // Derive the draconic chart from an already-calculated natal chart: a rigid
+    // rotation of every longitude so the natal North Node sits at 0° Aries.
+    // House placement and aspects are unaffected by a rigid rotation, so only
+    // longitude/sign are recomputed.
+    ChartData calculateDraconicChart(const ChartData &natal) const;
+
     // Swiss Ephemeris calculation methods
     QVector<HouseData> calculateHouseCusps(double jd, double lat, double lon, const QString &houseSystem) const;
     QVector<PlanetData> calculatePlanetPositions(double jd, const QVector<HouseData> &houses) const;

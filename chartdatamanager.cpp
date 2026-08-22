@@ -25,6 +25,11 @@ QVector<AspectData> ChartDataManager::calculateInteraspects(
     return m_calculator->calculateInteraspects(progressed.planets, natal.planets, orbMax);
 }
 
+ChartData ChartDataManager::calculateDraconicChart(const ChartData &natal)
+{
+    return m_calculator->calculateDraconicChart(natal);
+}
+
 bool ChartDataManager::isCalculatorAvailable() const
 {
     return m_calculator->isAvailable();

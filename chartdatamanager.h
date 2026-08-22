@@ -48,6 +48,9 @@ public:
                                               const ChartData &natal,
                                               double orbMax = 8.0);
 
+    // Derive the draconic chart from an already-calculated natal chart
+    ChartData calculateDraconicChart(const ChartData &natal);
+
     // Get the last error message
     QString getLastError() const;
 

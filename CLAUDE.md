@@ -79,7 +79,7 @@ Set up in `main.cpp` via `qInstallMessageHandler`. Format: `hh:mm:ss.zzz [D/W/C/
 | `mainwindow_dialogs.cpp` | Location search, map, and minor dialogs: `searchLocationCoordinates`, `showSymbolsDialog`, `showHowToUseDialog`, `onOpenMapClicked`, `showAspectSettings`. ~190 lines. |
 | `mainwindow_relationships.cpp` | Relationship charts: `createCompositeChart`, `createDavisonChart`, `createSynastryChart`, `showRelationshipChartsDialog`, `loadChartForRelationships`, `showChangelog`. ~860 lines. |
 | `mainwindow_transits.cpp` | Transits + eclipses: `CalculateTransits`, `applyTransitFilter`, `openTransitFilter`, `exportChartData`, `CalculateEclipses`, `displayRawEclipseData`. ~370 lines. |
-| `mainwindow_returns.cpp` | All planetary returns + secondary progression: 10× `calculate*Return` / `do*ReturnCalculation` pairs, `calculateSecondaryProgression`, `validateDateFormat`, `julianToGregorian`, `checkAndConvertJulian`. ~1530 lines. |
+| `mainwindow_returns.cpp` | All planetary returns + secondary progression + draconic: 10× `calculate*Return` / `do*ReturnCalculation` pairs, `calculateSecondaryProgression`, `calculateDraconicChart`, `validateDateFormat`, `julianToGregorian`, `checkAndConvertJulian`. ~1530 lines. |
 | `mainwindow_misc.cpp` | Remaining features + events: `showNewFeaturesDialog`, `toggleChartOnlyView`, `eventFilter`, drag-drop handlers, `importChartInputData`, `calculateZodiacSignsChart`, `copySavePath`, `configureAIModels`. ~520 lines. |
 | `chartcalculator.h/.cpp` | All astrological maths via Swiss Ephemeris. Natal, solar/lunar/planetary returns, transits, progressions, eclipses. |
 | `chartrenderer.h/.cpp` | `QGraphicsView`-based wheel chart renderer. `PlanetItem`, `AspectItem` custom graphics items. |
@@ -150,6 +150,7 @@ Models/My Mistral/maxTokens   = 8192
 | `"Zodiac Signs"` | Per-sign magazine horoscope, 12–15 sentences each |
 | `"Secondary Progression"` | Inner development/psychological growth narrative |
 | `"Davison Relationship"` | Relationship entity analysis |
+| `"Draconic"` | Soul-layer vs. outward-personality narrative (natal vs. draconic bi-wheel) |
 | Everything else | Generic natal reading (personality/strengths/challenges/life path) |
 
 ---
@@ -162,6 +163,7 @@ All types set `AsteriaGlobals::lastGeneratedChartType` before rendering:
 - Solar Return, Lunar Return
 - Saturn/Jupiter/Venus/Mars/Mercury/Uranus/Neptune/Pluto Return
 - Secondary Progression
+- Draconic
 - Synastry, Composite, Davison Relationship
 - Zodiac Signs (world chart, no birth data)
 - Transits (separate flow — uses `interpretTransits` not `interpretChart`)
@@ -179,6 +181,15 @@ The `.astr` save file for a bi-wheel contains these top-level keys:
 | *(no key)* | **Progressed × natal interaspects** ("Prog → Natal" tab) are **not saved** — recomputed on load via `calculateInteraspects(progressed, natal)`. In each `AspectData`, `planet1` = progressed planet, `planet2` = natal planet. Sent to AI as `progressedToNatalAspects`. |
 
 `m_currentNatalChartData` is empty for all non-bi-wheel charts. The load function checks for `natalChartData` first; the subsequent `relationshipInfo` else-branch must **not** clear `m_currentNatalChartData`/`m_progressionYear` — those are already set by the time that branch runs.
+
+### Draconic chart
+
+Reuses the exact same bi-wheel save/load format as Secondary Progression (`chartData` = draconic, `natalChartData` = natal, `progressionYear` left at 0/unused). `AsteriaGlobals::lastGeneratedChartType = "Draconic"` falls into the load function's default (non-Synastry) bi-wheel branch with no code changes needed there.
+
+The draconic chart itself is a pure rigid-rotation transform, computed in `ChartCalculator::calculateDraconicChart()` (chartcalculator.cpp) — no ephemeris query involved. It rotates every longitude (planets, houses, angles) by the offset that puts the natal North Node at 0° Aries, then re-derives `sign` from the rotated longitude. Because the rotation is rigid:
+
+- Each planet's **house is copied unchanged from natal** — house placement never changes under a rigid rotation, only the sign labeling.
+- **Aspects are copied unchanged from natal** — draconic-to-draconic aspects are always identical in type/orb to natal-to-natal aspects. The only new information is the draconic↔natal interaspects (via the existing `calculateInteraspects`), sent to the AI as `draconicToNatalAspects` (mirrors `progressedToNatalAspects`) alongside `draconicToDraconicAspects`.
 
 ---
 

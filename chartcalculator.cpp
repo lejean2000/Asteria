@@ -353,6 +353,44 @@ QVector<AspectData> ChartCalculator::calculateInteraspects(
     return aspects;
 }
 
+ChartData ChartCalculator::calculateDraconicChart(const ChartData &natal) const
+{
+    ChartData draconic = natal;
+
+    // The draconic zero point is the natal North Node longitude.
+    double nodeLongitude = 0.0;
+    for (const PlanetData &p : natal.planets) {
+        if (p.id == Planet::NorthNode) {
+            nodeLongitude = p.longitude;
+            break;
+        }
+    }
+
+    auto rotate = [nodeLongitude](double longitude) -> double {
+        double result = fmod(longitude - nodeLongitude, 360.0);
+        if (result < 0) result += 360.0;
+        return result;
+    };
+
+    // Rigid rotation: every point (planets, house cusps, angles) shifts by
+    // the same offset, so house placement and aspects are unchanged relative
+    // to the rotated frame - only longitude/sign need recomputing.
+    for (PlanetData &p : draconic.planets) {
+        p.longitude = rotate(p.longitude);
+        p.sign = getZodiacSign(p.longitude);
+    }
+    for (HouseData &h : draconic.houses) {
+        h.longitude = rotate(h.longitude);
+        h.sign = getZodiacSign(h.longitude);
+    }
+    for (AngleData &a : draconic.angles) {
+        a.longitude = rotate(a.longitude);
+        a.sign = getZodiacSign(a.longitude);
+    }
+
+    return draconic;
+}
+
 ChartData ChartCalculator::calculateChart(const QDate &birthDate,
                                           const QTime &birthTime,
                                           const QString &utcOffset,

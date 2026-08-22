@@ -53,6 +53,9 @@ void MainWindow::getInterpretation() {
     const bool isSynastry =
         (AsteriaGlobals::lastGeneratedChartType == "Synastry"
          && !m_currentNatalChartData.isEmpty());
+    const bool isDraconic =
+        (AsteriaGlobals::lastGeneratedChartType == "Draconic"
+         && !m_currentNatalChartData.isEmpty());
 
     if (!AsteriaGlobals::activeModelLoaded) {
         m_mistralApi.loadActiveModel();
@@ -258,6 +261,56 @@ void MainWindow::getInterpretation() {
         dataToSend["personA"] = personAJson;
         dataToSend["personB"] = personBJson;
         dataToSend["synastryAspects"] = keepOnlyMajors(filterAspectsForBodies(synastryAspectsJson));
+    }
+    else if (isDraconic) {
+        // Bi-wheel payload: natal (m_currentNatalChartData) vs. draconic
+        // (m_currentChartData) - see calculateDraconicChart(). A draconic
+        // planet's house is always identical to its natal house (rigid
+        // rotation), so unlike Secondary Progression there is no separate
+        // house-overlay field to compute.
+        static const QStringList majorAspects = {
+            "Conjunction", "Opposition", "Square", "Trine", "Sextile"
+        };
+        auto keepOnlyMajors = [&](const QJsonArray &aspects) -> QJsonArray {
+            QJsonArray out;
+            for (const QJsonValue &v : aspects) {
+                QJsonObject a = v.toObject();
+                if (majorAspects.contains(a["aspectType"].toString()))
+                    out.append(a);
+            }
+            return out;
+        };
+
+        // Recompute draconic×natal interaspects on demand.
+        ChartData natal    = convertJsonToChartData(m_currentNatalChartData);
+        ChartData draconic = convertJsonToChartData(m_currentChartData);
+        QVector<AspectData> interAspects =
+            m_chartDataManager.calculateInteraspects(draconic, natal);
+
+        QJsonArray interAspectsJson;
+        for (const AspectData &a : interAspects) {
+            QJsonObject jo;
+            jo["planet1"]    = toString(a.planet1);
+            jo["planet2"]    = toString(a.planet2);
+            jo["aspectType"] = toString(a.aspectType);
+            jo["orb"]        = a.orb;
+            interAspectsJson.append(jo);
+        }
+
+        QJsonObject natalJson;
+        natalJson["angles"]  = m_currentNatalChartData["angles"].toArray();
+        natalJson["planets"] = filterPlanets(m_currentNatalChartData["planets"].toArray());
+
+        QJsonObject draconicJson;
+        draconicJson["angles"]  = m_currentChartData["angles"].toArray();
+        draconicJson["planets"] = filterPlanets(m_currentChartData["planets"].toArray());
+
+        dataToSend["natal"]    = natalJson;
+        dataToSend["draconic"] = draconicJson;
+        dataToSend["draconicToNatalAspects"] =
+            keepOnlyMajors(filterAspectsForBodies(interAspectsJson));
+        dataToSend["draconicToDraconicAspects"] =
+            keepOnlyMajors(filterAspectsForBodies(m_currentChartData["aspects"].toArray()));
     }
     else {
         // Single-chart payload (original path).

@@ -1563,3 +1563,92 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
         .arg(progressionYear);
     appendInterpretationEntry("chart_info", "Secondary Progression", infoText);
 }
+
+// Draconic chart: a bi-wheel comparing the natal chart to a rigid rotation
+// of it that places the natal North Node at 0° Aries - the "soul layer"
+// distinct from the outward natal personality.
+void MainWindow::calculateDraconicChart()
+{
+    QString dateText = m_birthDateEdit->text();
+    if (!validateDateFormat(dateText, this)) {
+        return;
+    }
+
+    QDate birthDate = getBirthDate();
+    QTime birthTime = QTime::fromString(m_birthTimeEdit->text(), "HH:mm");
+    QString utcOffset  = m_utcOffsetCombo->currentText();
+    QString latitude   = m_latitudeEdit->text();
+    QString longitude  = m_longitudeEdit->text();
+    QString houseSystem = m_houseSystemCombo->currentText();
+
+    if (latitude.isEmpty() || longitude.isEmpty()) {
+        QMessageBox::warning(this, "Input Error", "Please enter latitude and longitude.");
+        return;
+    }
+
+    // Reset chart state
+    m_chartCalculated = false;
+    m_currentChartData = QJsonObject();
+    m_currentNatalChartData = QJsonObject();
+    m_progressionYear = 0;
+    m_currentRelationshipInfo = QJsonObject();
+    m_chartRenderer->scene()->clear();
+
+    // ── Calculate natal chart, then derive the draconic rotation ───────────
+    ChartData natalRaw = m_chartDataManager.calculateChart(
+        birthDate, birthTime, utcOffset, latitude, longitude, houseSystem);
+    if (!m_chartDataManager.getLastError().isEmpty()) {
+        handleError("Natal chart error: " + m_chartDataManager.getLastError());
+        return;
+    }
+
+    ChartData draconicRaw = m_chartDataManager.calculateDraconicChart(natalRaw);
+
+    // Apply additional-bodies filter
+    ChartData natal    = filterAdditionalBodies(natalRaw);
+    ChartData draconic = filterAdditionalBodies(draconicRaw);
+
+    // Draconic-to-natal interaspects
+    QVector<AspectData> interAspects = m_chartDataManager.calculateInteraspects(draconic, natal);
+
+    // ── Render bi-wheel ──────────────────────────────────────────────────────
+    m_chartRenderer->setDualChartData(natal, draconic, interAspects);
+    m_chartRenderer->renderChart();
+
+    // ── Update side panels ───────────────────────────────────────────────────
+    m_planetListWidget->updateDualData(natal, draconic, "Natal", "Draconic");
+    m_aspectarianWidget->updateDualData(natal, draconic, interAspects,
+                                        "Draconic → Draconic", "Draconic → Natal");
+    m_modalityElementWidget->updateDualData(natal, draconic, "Natal", "Draconic");
+
+    // Store chart JSONs (draconic = AI/detail tables; natal = bi-wheel save/load)
+    m_currentChartData      = m_chartDataManager.chartDataToJson(draconicRaw);
+    m_currentNatalChartData = m_chartDataManager.chartDataToJson(natalRaw);
+    updateChartDetailsTables(m_currentChartData);
+
+    m_chartCalculated = true;
+    AsteriaGlobals::lastGeneratedChartType = "Draconic";
+    m_getInterpretationButton->setEnabled(true);
+    getPredictionButton->setEnabled(true);
+    getTransitsButton->setEnabled(true);
+
+    m_interpretations = QJsonArray();
+    renderAllInterpretations();
+    statusBar()->showMessage("Draconic bi-wheel calculated successfully", 3000);
+
+    QString natalNodeSign;
+    for (const PlanetData &p : natalRaw.planets) {
+        if (p.id == Planet::NorthNode) {
+            natalNodeSign = p.sign;
+            break;
+        }
+    }
+
+    QString infoText = QString(
+        "Draconic Chart (Bi-Wheel)\n"
+        "Natal: %1\n"
+        "Natal North Node: %2  (rotated to 0° Aries in the draconic wheel)\n\n")
+        .arg(birthDate.toString("yyyy/MM/dd"))
+        .arg(natalNodeSign);
+    appendInterpretationEntry("chart_info", "Draconic Chart", infoText);
+}
