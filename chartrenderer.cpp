@@ -304,7 +304,7 @@ void ChartRenderer::drawChartWheel(){
     // Draw outer wheel
     m_outerWheel = new QGraphicsEllipseItem(-outerRadius, -outerRadius,
                                             outerRadius * 2, outerRadius * 2);
-    m_outerWheel->setPen(QPen(Qt::black, 2));
+    m_outerWheel->setPen(QPen(Qt::black, 1));
     m_outerWheel->setBrush(Qt::transparent);
     m_outerWheel->setZValue(1);
     m_scene->addItem(m_outerWheel);
@@ -351,18 +351,18 @@ void ChartRenderer::drawZodiacSigns()
 
     // Define sign colors based on elements
     QMap<QString, QColor> signColors = {
-        {"Aries", QColor(255, 200, 200)},      // Fire
-        {"Leo", QColor(255, 200, 200)},        // Fire
-        {"Sagittarius", QColor(255, 200, 200)},// Fire
-        {"Taurus", QColor(255, 255, 200)},     // Earth
-        {"Virgo", QColor(255, 255, 200)},      // Earth
-        {"Capricorn", QColor(255, 255, 200)},  // Earth
-        {"Gemini", QColor(200, 255, 200)},     // Air
-        {"Libra", QColor(200, 255, 200)},      // Air
-        {"Aquarius", QColor(200, 255, 200)},   // Air
-        {"Cancer", QColor(200, 200, 255)},     // Water
-        {"Scorpio", QColor(200, 200, 255)},    // Water
-        {"Pisces", QColor(200, 200, 255)}      // Water
+        {"Aries", ElementColors::Fire},
+        {"Leo", ElementColors::Fire},
+        {"Sagittarius", ElementColors::Fire},
+        {"Taurus", ElementColors::Earth},
+        {"Virgo", ElementColors::Earth},
+        {"Capricorn", ElementColors::Earth},
+        {"Gemini", ElementColors::Air},
+        {"Libra", ElementColors::Air},
+        {"Aquarius", ElementColors::Air},
+        {"Cancer", ElementColors::Water},
+        {"Scorpio", ElementColors::Water},
+        {"Pisces", ElementColors::Water}
     };
 
     // Define zodiac signs in the correct order
@@ -441,7 +441,8 @@ void ChartRenderer::drawZodiacSigns()
 
         // Center the text at the calculated position
         QRectF textRect = signText->boundingRect();
-        signText->setPos(x - textRect.width()/2, y - textRect.height()/2);
+        double yNudge = (signs[i] == "♊" || signs[i] == "♐") ? -1.0 : 0.0; // Gemini/Sagittarius sit 1px low
+        signText->setPos(x - textRect.width()/2, y - textRect.height()/2 + yNudge);
 
         // Add to scene
         m_scene->addItem(signText);
@@ -629,14 +630,11 @@ void ChartRenderer::drawAngles() {
     // Test specific angles
 
     double outerRadius = m_chartSize / 2.0;
-    // Calculate ring positions - house ring is outside zodiac ring
-    double houseRingOuterRadius = outerRadius; // House ring is at the outer edge
-    double zodiacOuterRadius = houseRingOuterRadius - DEFAULT_WHEEL_THICKNESS;
-    double zodiacInnerRadius = zodiacOuterRadius - m_wheelThickness;
 
-    // Position labels in the house ring, closer to the middle of the ring
-    //double labelRadius = houseRingOuterRadius - (DEFAULT_WHEEL_THICKNESS * 0.5);
-    double labelRadius = houseRingOuterRadius - (DEFAULT_WHEEL_THICKNESS * 0.5) + 70;
+    // Position AC/MC/DC/IC labels just outside the actual house ring (see drawHouseRing())
+    double houseRingInnerRadius = outerRadius + 10; // must match drawHouseRing()'s gap
+    double houseRingOuterRadius = houseRingInnerRadius + DEFAULT_WHEEL_THICKNESS; // must match drawHouseRing()'s width
+    double labelRadius = houseRingOuterRadius + 15;
 
 
     // Store angle points to draw axes later
@@ -1036,7 +1034,7 @@ void ChartRenderer::drawHouseRing() {
     double outerRadius = m_chartSize / 2.0;
     double zodiacOuterRadius = outerRadius;
     double houseRingInnerRadius = zodiacOuterRadius + 10; // Small gap between zodiac and house ring
-    double houseRingOuterRadius = houseRingInnerRadius + 30; // Width of house ring
+    double houseRingOuterRadius = houseRingInnerRadius + DEFAULT_WHEEL_THICKNESS; // Width of house ring
 
     // Draw the house ring (outer circle)
     QGraphicsEllipseItem *houseRingOuter = new QGraphicsEllipseItem(
@@ -1054,11 +1052,11 @@ void ChartRenderer::drawHouseRing() {
     houseRingInner->setBrush(Qt::transparent);
     m_scene->addItem(houseRingInner);
 
-    // Define colors for the elements with the specified RGB values
-    QColor fireColor(255, 200, 200);  // Light red with transparency
-    QColor earthColor(255, 255, 200);  // Light yellow with transparency
-    QColor airColor(200, 255, 200);  // Light green with transparency
-    QColor waterColor(200, 200, 255);  // Light blue with transparency
+    // Define colors for the elements (see ElementColors in Globals.h)
+    QColor fireColor = ElementColors::Fire;
+    QColor earthColor = ElementColors::Earth;
+    QColor airColor = ElementColors::Air;
+    QColor waterColor = ElementColors::Water;
 
     // Define tooltips for each house with element and meaning
     QStringList houseTooltips = {

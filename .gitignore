@@ -70,3 +70,6 @@ make_icon.py
 # Installer build artifacts
 deploy/
 installer_output/
+
+# Local notes
+TODO.md

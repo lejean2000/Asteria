@@ -13,6 +13,15 @@ extern QString appDir;
 extern bool activeModelLoaded;
 }
 
+// Zodiac element colors, shared by the chart wheel (chartrenderer.cpp) and the
+// planet table (planetlistwidget.cpp) so both stay in sync from one definition.
+namespace ElementColors {
+inline const QColor Fire  = QColor(255, 200, 200); // Aries, Leo, Sagittarius
+inline const QColor Earth = QColor(255, 245, 160); // Taurus, Virgo, Capricorn
+inline const QColor Air   = QColor(200, 255, 200); // Gemini, Libra, Aquarius
+inline const QColor Water = QColor(100, 200, 240); // Cancer, Scorpio, Pisces
+}
+
 // Global orb setting functions
 double getOrbMax();
 void setOrbMax(double value);

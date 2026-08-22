@@ -1,4 +1,5 @@
 #include "planetlistwidget.h"
+#include "Globals.h"
 #include <QHeaderView>
 #include <QFont>
 #include <QTabWidget>
@@ -159,9 +160,9 @@ void PlanetListWidget::populateTable(QTableWidget *table, const ChartData &chart
             table->setItem(row, 3, minuteItem);
             table->setItem(row, 4, houseItem);
 
-            // Center align all items
+            // Left-align Planet/Sign, center the rest
             for (int col = 0; col < table->columnCount(); ++col) {
-                table->item(row, col)->setTextAlignment(Qt::AlignCenter);
+                table->item(row, col)->setTextAlignment(col <= 1 ? (Qt::AlignLeft | Qt::AlignVCenter) : Qt::AlignCenter);
             }
         }
     }
@@ -199,9 +200,9 @@ void PlanetListWidget::populateTable(QTableWidget *table, const ChartData &chart
             table->setItem(row, 3, minuteItem);
             table->setItem(row, 4, houseItem);
 
-            // Center align all items
+            // Left-align Planet/Sign, center the rest
             for (int col = 0; col < table->columnCount(); ++col) {
-                table->item(row, col)->setTextAlignment(Qt::AlignCenter);
+                table->item(row, col)->setTextAlignment(col <= 1 ? (Qt::AlignLeft | Qt::AlignVCenter) : Qt::AlignCenter);
             }
         }
     }
@@ -265,15 +266,15 @@ QColor PlanetListWidget::getColorForSign(const QString &sign)
 {
     // Colors based on elements
     if (sign == "Aries" || sign == "Leo" || sign == "Sagittarius") {
-        return QColor(255, 200, 200);  // Light red for Fire
+        return ElementColors::Fire;
     } else if (sign == "Taurus" || sign == "Virgo" || sign == "Capricorn") {
-        return QColor(255, 255, 200);  // Light yellow for earth 255, 255, 200
+        return ElementColors::Earth;
 
     } else if (sign == "Gemini" || sign == "Libra" || sign == "Aquarius") {
-        return QColor(200, 255, 200);  // Light green for Air 200, 255, 200
+        return ElementColors::Air;
 
     } else if (sign == "Cancer" || sign == "Scorpio" || sign == "Pisces") {
-        return QColor(200, 200, 255);  // Light blue for Water
+        return ElementColors::Water;
     }
 
     return QColor(240, 240, 240);  // Light gray default

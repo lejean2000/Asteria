@@ -680,6 +680,8 @@ void MainWindow::setupInterpretationDock() {
     languageComboBox->addItem("Portuguese");
     languageComboBox->addItem("Hindi");
     languageComboBox->addItem("Chinese (Simplified)");
+    languageComboBox->addItem("Bulgarian");
+    languageComboBox->addItem("Arabic");
     languageComboBox->setCurrentIndex(0);
     languageComboBox->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
 
