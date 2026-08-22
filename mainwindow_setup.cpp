@@ -826,7 +826,6 @@ void MainWindow::setupMenus()
     fileMenu->addSeparator();
 
     QAction *getDataDirAction = fileMenu->addAction("Copy Save Location...", this, &MainWindow::copySavePath);
-    getDataDirAction->setShortcut(QKeySequence("Ctrl+C"));
     getDataDirAction->setIcon(QIcon::fromTheme("edit-copy"));
 
     fileMenu->addSeparator();
