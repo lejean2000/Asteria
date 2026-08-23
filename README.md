@@ -4,6 +4,8 @@
 
 Asteria L is a comprehensive astrological chart application that combines traditional astrology with modern AI technology. Calculate, visualize, and interpret natal charts, transits, progressions, returns, and relationship charts with precision and insight.
 
+The easiest way to get started is to download the [latest release](https://github.com/lejean2000/Asteria/releases).
+
 This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by Alamahant, adding:
 
 - A **dual progressed/natal bi-wheel chart** with progressed-to-natal interaspects
@@ -51,14 +53,6 @@ To build from source:
 - Install
 
 Build requirements: CMake + Ninja, MSVC 2022 BuildTools, Qt 6, and the Swiss Ephemeris source. The Swiss Ephemeris data path is configurable via CMake options.
-
-### Original Project on Flathub
-
-The upstream [Asteria](https://github.com/alamahant/Asteria) project remains available on Flathub:
-
-```bash
-flatpak install flathub io.github.alamahant.Asteria
-```
 
 ## Usage
 
