@@ -1632,8 +1632,6 @@ void MainWindow::calculateDraconicChart()
     getPredictionButton->setEnabled(true);
     getTransitsButton->setEnabled(true);
 
-    m_interpretations = QJsonArray();
-    renderAllInterpretations();
     statusBar()->showMessage("Draconic bi-wheel calculated successfully", 3000);
 
     QString natalNodeSign;
