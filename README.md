@@ -8,8 +8,7 @@ This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by
 
 - A **dual progressed/natal bi-wheel chart** with progressed-to-natal interaspects
 - A **Draconic chart** bi-wheel with its own soul-layer-vs-outward-personality AI reading
-- Full **Synastry** bi-wheel (Person A vs. Person B) with interaspects and a dedicated relationship AI reading, alongside Composite and Davison charts
-- Every chart type is now reachable from the **Tools menu**, including the natal chart itself
+- Full **Synastry** bi-wheel with interaspects and a dedicated relationship AI reading, alongside Composite and Davison charts
 - A longer, in-depth **natal chart AI reading** and **improved transit interpretations** — transits are always calculated against your true natal chart, no matter what chart type is currently on screen
 - Every AI reading is saved as a structured entry (chart, transit, or info) with timestamp, model name, and transit period, and is **backward compatible** with old save files
 - **Collapsible headers** in the interpretation window so multiple readings stay organized, plus a **Copy HTML** option for pasting formatted readings straight into Word or other rich-text apps
