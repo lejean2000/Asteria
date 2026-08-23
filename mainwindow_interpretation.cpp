@@ -468,6 +468,21 @@ void MainWindow::renderAllInterpretations()
         int docH = static_cast<int>(body->document()->size().height()) + 20;
         body->setFixedHeight(qMin(docH, 600));
 
+        body->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(body, &QTextBrowser::customContextMenuRequested, body, [body](const QPoint &pos) {
+            QMenu *menu = body->createStandardContextMenu(pos);
+            menu->addSeparator();
+            QAction *copyHtmlAction = menu->addAction("Copy HTML");
+            connect(copyHtmlAction, &QAction::triggered, body, [body]() {
+                QMimeData *mimeData = new QMimeData();
+                mimeData->setHtml(body->toHtml());
+                mimeData->setText(body->toPlainText());
+                QGuiApplication::clipboard()->setMimeData(mimeData);
+            });
+            menu->exec(body->viewport()->mapToGlobal(pos));
+            delete menu;
+        });
+
         cardLayout->addWidget(hdr);
         cardLayout->addWidget(body);
 
