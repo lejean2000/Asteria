@@ -7,9 +7,13 @@ Asteria L is a comprehensive astrological chart application that combines tradit
 This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by Alamahant, adding:
 
 - A **dual progressed/natal bi-wheel chart** with progressed-to-natal interaspects
-- A longer, in-depth **natal chart AI reading** and **improved transit interpretations**
+- A **Draconic chart** bi-wheel with its own soul-layer-vs-outward-personality AI reading
+- Full **Synastry** bi-wheel (Person A vs. Person B) with interaspects and a dedicated relationship AI reading, alongside Composite and Davison charts
+- Every chart type is now reachable from the **Tools menu**, including the natal chart itself
+- A longer, in-depth **natal chart AI reading** and **improved transit interpretations** — transits are always calculated against your true natal chart, no matter what chart type is currently on screen
 - Every AI reading is saved as a structured entry (chart, transit, or info) with timestamp, model name, and transit period, and is **backward compatible** with old save files
-- **Collapsible headers** in the interpretation window so multiple readings stay organized
+- **Collapsible headers** in the interpretation window so multiple readings stay organized, plus a **Copy HTML** option for pasting formatted readings straight into Word or other rich-text apps
+- An indeterminate **"Waiting for AI reply..."** progress indicator while a chart or transit interpretation is in flight
 - AI reasoning set to **high effort** with higher default API limits
 - A managed **Windows installer** (Inno Setup) with the MSVC runtime and ephemeris data bundled
 - Configurable Swiss Ephemeris paths at build time, editable lat/lon fields, planet icons in the modalities window
@@ -18,14 +22,16 @@ This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by
 
 - **Natal Chart Calculation**: Generate accurate birth charts with precise planetary positions
 - **Secondary Progression (Dual Bi-Wheel)**: Calculate a progressed chart for any age, overlaid with the natal chart, including a progressed-to-natal interaspect table and its own AI reading
+- **Draconic Chart (Dual Bi-Wheel)**: Compare your natal chart against its draconic rotation, with draconic-to-natal interaspects and a dedicated soul-layer AI reading
 - **Interactive Chart Display**: Visually explore your astrological chart with an intuitive interface
 - **Aspect Analysis**: Examine the relationships between planets with detailed aspect tables
 - **House and Sign Placements**: View planetary positions by house and zodiac sign
 - **Element & Modality Balance**: Analyze the distribution of elements and modalities in your chart
 - **AI-Powered Interpretations**: Receive personalized chart readings using advanced AI technology
   - Long-form natal readings based on a 130-line structured prompt
-  - Enhanced transit interpretations with period-aware context
+  - Enhanced transit interpretations with period-aware context, always grounded in your true natal chart
   - Interpretations stored as typed, timestamped entries with collapsible headers
+  - **Copy HTML** from any interpretation card's context menu for formatted paste into Word and other rich-text editors
 - **Modern UI**: Clean, user-friendly interface suitable for both beginners and experienced astrologers
 - **Extended Time Range**: Calculate charts from 3000 BC to 3000 AD with high precision
 - **Relationship Charts**: Compare natal charts with synastry, composite, and Davison analysis

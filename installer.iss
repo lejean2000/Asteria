@@ -1,11 +1,11 @@
 [Setup]
 AppName=Asteria L
-AppVersion=0.9
+AppVersion=0.10
 AppPublisher=lejean2000
 DefaultDirName={commonpf32}\Asteria
 DefaultGroupName=Asteria L
 OutputDir=installer_output
-OutputBaseFilename=AsteriaL_0.9_Setup
+OutputBaseFilename=AsteriaL_0.10_Setup
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64compatible
