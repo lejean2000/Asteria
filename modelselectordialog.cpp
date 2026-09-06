@@ -327,14 +327,15 @@ void ModelSelectorDialog::showEditDialog(Model *model)
     QDoubleSpinBox *tempSpin = new QDoubleSpinBox(&dialog);
     tempSpin->setRange(0.0, 2.0);
     tempSpin->setSingleStep(0.1);
-    tempSpin->setValue(0.7);
+    tempSpin->setValue(1.0);
     tempSpin->setToolTip(tr("Controls randomness: lower values are more deterministic, higher values more creative\n"
-                            "Keep 0.70 for best results"));
+                            "1.0 recommended for best results"));
     QSpinBox *maxTokensSpin = new QSpinBox(&dialog);
     maxTokensSpin->setRange(1, 100000);
-    maxTokensSpin->setValue(8192);
+    maxTokensSpin->setValue(32768);
     maxTokensSpin->setToolTip(tr("Maximum number of tokens in the response\n"
-                                 "Keep 8192 for Mistral"));
+                                 "Asteria's prompts are extensive and can produce long interpretations - "
+                                 "32768 recommended; raise it further if replies get cut off"));
     // If editing, populate fields
     if (model) {
         nameEdit->setText(model->name);

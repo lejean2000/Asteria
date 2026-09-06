@@ -9,8 +9,8 @@ struct Model {
     QString endpoint;       // full API URL
     QString apiKey;         // optional, may be empty
     QString modelName;      // model identifier used by the provider
-    double temperature;     // default 0.7
-    int maxTokens;          // default 8192
+    double temperature;     // default 1.0
+    int maxTokens;          // default 32768
 
     // Equality operator for convenience
     bool operator==(const Model &other) const {
