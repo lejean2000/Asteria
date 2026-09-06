@@ -209,8 +209,15 @@ void MainWindow::setupCentralWidget() {
     eclipseTable->setObjectName("Eclipses");
     eclipseTable->setHorizontalHeaderLabels({"Date", "Time", "Type", "Magnitude", "Latitude", "Longitude"});
     eclipseTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    // Aspect Patterns table (natal charts only)
+    aspectPatternsTable = new QTableWidget(0, 3, detailsTabs);
+    aspectPatternsTable->setObjectName("AspectPatterns");
+    aspectPatternsTable->setHorizontalHeaderLabels({"Pattern", "Planets", "Details"});
+    aspectPatternsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
     // make all tables copiable
-    QList<QTableWidget*> tables = {planetsTable, anglesTable, housesTable, aspectsTable, rawTransitTable, eclipseTable};
+    QList<QTableWidget*> tables = {planetsTable, anglesTable, housesTable, aspectsTable, rawTransitTable, eclipseTable, aspectPatternsTable};
 
     for (QTableWidget *table : tables) {
         table->setSelectionBehavior(QAbstractItemView::SelectItems);
@@ -264,6 +271,7 @@ void MainWindow::setupCentralWidget() {
     detailsTabs->addTab(aspectsTable, "Aspects");
     detailsTabs->addTab(rawTransitTable, "Raw Transit Data");
     detailsTabs->addTab(eclipseTable, "Eclipses");
+    detailsTabs->addTab(aspectPatternsTable, "Aspect Patterns");
 
     detailsLayout->addWidget(detailsTabs);
 
@@ -568,7 +576,7 @@ void MainWindow::setupInputDock() {
                 // displayChart() only knows how to render a single wheel.
                 refreshDualWheelDisplay();
             } else {
-                displayChart(m_currentChartData);
+                displayChart(m_currentChartData, AsteriaGlobals::lastGeneratedChartType == "Natal Birth");
             }
         }
 

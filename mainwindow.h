@@ -63,6 +63,7 @@
 #include"donationdialog.h"
 #include "model.h"
 #include "modelselectordialog.h"
+#include "aspectpatterndetector.h"
 
 struct ParsedDate {
     int year;   // Astronomical year (negative for BCE, 0 for 1 BCE, etc.)
@@ -82,7 +83,10 @@ public:
 private slots:
     // Chart calculation and display
     void calculateChart();
-    void displayChart(const QJsonObject &chartData);
+    // detectAspectPatterns: run AspectPatternDetector and populate the Aspect
+    // Patterns tab. Only meaningful for natal charts, for now - every other
+    // caller leaves it false and the tab is cleared.
+    void displayChart(const QJsonObject &chartData, bool detectAspectPatterns = false);
     // Re-filter and re-render the currently displayed bi-wheel chart (Secondary
     // Progression / Draconic / Synastry) - the dual-wheel counterpart to
     // displayChart(), used when the additional-bodies filter is toggled.
@@ -183,6 +187,10 @@ private:
     QProgressBar *m_aiWaitProgressBar; // Indeterminate; shown while waiting on an AI reply (interpretation or prediction)
     QTableWidget *rawTransitTable;
     void displayRawTransitData(const QJsonObject &transitData);
+    // Aspect pattern detection (natal charts only)
+    QTableWidget *aspectPatternsTable;
+    AspectPatternResults m_currentAspectPatterns; // valid only when the natal chart is displayed
+    void updateAspectPatternsTable(const AspectPatternResults &results);
 private slots:
     void getPrediction();
     void displayTransitInterpretation(const QString &interpretation);

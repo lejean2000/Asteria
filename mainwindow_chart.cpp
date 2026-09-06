@@ -66,8 +66,6 @@ void MainWindow::calculateChart()
     m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject(); // Reset relationship info
     m_calculateButton->setEnabled(true); // Re-enable in case a relationship chart had disabled it
-    m_interpretations = QJsonArray(); // Discard interpretations from any previously displayed chart
-    renderAllInterpretations();
 
     m_chartRenderer->scene()->clear();
 
@@ -79,8 +77,8 @@ void MainWindow::calculateChart()
 
     if (m_chartDataManager.getLastError().isEmpty()) {
 
-        // Display chart
-        displayChart(m_currentChartData);
+        // Display chart (natal: also runs aspect pattern detection)
+        displayChart(m_currentChartData, /*detectAspectPatterns=*/true);
         m_chartCalculated = true;
         // Set chart type for interpretation
 
@@ -101,7 +99,7 @@ void MainWindow::calculateChart()
 }
 
 
-void MainWindow::displayChart(const QJsonObject &chartData) {
+void MainWindow::displayChart(const QJsonObject &chartData, bool detectAspectPatterns) {
 
     // Define which bodies are considered "additional"
     QStringList additionalBodies = {
@@ -160,6 +158,15 @@ void MainWindow::displayChart(const QJsonObject &chartData) {
 
     // Update chart details tables
     updateChartDetailsTables(filteredChartData);
+
+    // Aspect pattern detection - natal charts only, for now
+    if (detectAspectPatterns) {
+        m_currentAspectPatterns = AspectPatternDetector::detect(data.planets, data.aspects);
+        updateAspectPatternsTable(m_currentAspectPatterns);
+    } else {
+        m_currentAspectPatterns = AspectPatternResults();
+        aspectPatternsTable->setRowCount(0);
+    }
 
     chartInfoOverlay->setVisible(m_showInfoOverlay);
     populateInfoOverlay();
@@ -355,6 +362,64 @@ void MainWindow::updateChartDetailsTables(const QJsonObject &chartData)
     }
 }
 
+
+namespace {
+QString planetListString(const QVector<Planet> &planets)
+{
+    QStringList names;
+    for (Planet p : planets)
+        names << toString(p);
+    return names.join(", ");
+}
+} // namespace
+
+void MainWindow::updateAspectPatternsTable(const AspectPatternResults &results)
+{
+    aspectPatternsTable->setRowCount(0);
+
+    auto addRow = [this](const QString &pattern, const QString &planets, const QString &details) {
+        int row = aspectPatternsTable->rowCount();
+        aspectPatternsTable->insertRow(row);
+        aspectPatternsTable->setItem(row, 0, new QTableWidgetItem(pattern));
+        aspectPatternsTable->setItem(row, 1, new QTableWidgetItem(planets));
+        aspectPatternsTable->setItem(row, 2, new QTableWidgetItem(details));
+    };
+
+    for (const ClusterPattern &pattern : results.clusters) {
+        QString label = (pattern.subtype == ClusterSubtype::Tight) ? "Cluster (Tight)" : "Cluster (Loose)";
+        addRow(label, planetListString(pattern.planets), QString());
+    }
+
+    for (const EasyOppositionPattern &pattern : results.easyOppositions) {
+        addRow("Easy Opposition",
+               toString(pattern.pole1) + " – " + toString(pattern.pole2),
+               "Eased by " + toString(pattern.easing));
+    }
+
+    for (const TSquarePattern &pattern : results.tSquares) {
+        addRow("T-Square",
+               toString(pattern.pole1) + " – " + toString(pattern.pole2),
+               "Apex: " + toString(pattern.apex));
+    }
+
+    for (const GrandCrossPattern &pattern : results.grandCrosses) {
+        addRow("Grand Cross", planetListString(pattern.planets), QString());
+    }
+
+    for (const GrandTrinePattern &pattern : results.grandTrines) {
+        addRow("Grand Trine", planetListString(pattern.planets), QString());
+    }
+
+    for (const KitePattern &pattern : results.kites) {
+        addRow("Kite", planetListString(pattern.grandTrinePlanets),
+               "Tail: " + toString(pattern.tail) + " (opposite apex: " + toString(pattern.apex) + ")");
+    }
+
+    for (const SpikePattern &pattern : results.spikes) {
+        QString label = (pattern.spikeType == SpikeType::Yod) ? "Yod" : "Thor's Hammer";
+        addRow(label, planetListString(pattern.base), "Apex: " + toString(pattern.apex));
+    }
+}
 
 QJsonValue roundJsonDoubles(const QJsonValue &val) {
     if (val.isDouble())

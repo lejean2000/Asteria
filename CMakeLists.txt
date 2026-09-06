@@ -110,6 +110,7 @@ set(PROJECT_SOURCES
     mainwindow.ui
     astro_types.h astro_types.cpp
     chartcalculator.h chartcalculator.cpp
+    aspectpatterndetector.h aspectpatterndetector.cpp
     chartdatamanager.h chartdatamanager.cpp
     chartrenderer.h chartrenderer.cpp
     mistralapi.h mistralapi.cpp

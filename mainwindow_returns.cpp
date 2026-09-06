@@ -1506,6 +1506,7 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
     m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
+    aspectPatternsTable->setRowCount(0); // patterns are natal-only, for now
 
     // ── Calculate both charts ────────────────────────────────────────────────
     ChartData natalRaw = m_chartDataManager.calculateChart(
@@ -1550,8 +1551,6 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
     getPredictionButton->setEnabled(true);
     getTransitsButton->setEnabled(true);
 
-    m_interpretations = QJsonArray();
-    renderAllInterpretations();
     statusBar()->showMessage("Secondary progression bi-wheel calculated successfully", 3000);
 
     QString infoText = QString(
@@ -1593,6 +1592,7 @@ void MainWindow::calculateDraconicChart()
     m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
+    aspectPatternsTable->setRowCount(0); // patterns are natal-only, for now
 
     // ── Calculate natal chart, then derive the draconic rotation ───────────
     ChartData natalRaw = m_chartDataManager.calculateChart(

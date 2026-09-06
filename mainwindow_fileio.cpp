@@ -150,6 +150,11 @@ void MainWindow::saveChart() {
 
     saveData["chartType"] = AsteriaGlobals::lastGeneratedChartType;
 
+    // Aspect patterns are natal-only, for now
+    if (AsteriaGlobals::lastGeneratedChartType == "Natal Birth") {
+        saveData["aspectPatterns"] = AspectPatternDetector::toJson(m_currentAspectPatterns);
+    }
+
     // Check if this is a secondary progression bi-wheel
     if (!m_currentNatalChartData.isEmpty()) {
         saveData["natalChartData"]  = m_currentNatalChartData;
@@ -245,11 +250,20 @@ void MainWindow::loadChart() {
                     }
 
                     updateChartDetailsTables(m_currentChartData);
+                    aspectPatternsTable->setRowCount(0); // patterns are natal-only, for now
                 } else {
                     // ── Regular single chart ────────────────────────────────
                     AsteriaGlobals::lastGeneratedChartType =
                         saveData.value("chartType").toString("Natal Birth").replace('-', ' ');
                     displayChart(m_currentChartData);
+
+                    // Aspect patterns are natal-only, for now; older save files
+                    // may not have this key.
+                    if (AsteriaGlobals::lastGeneratedChartType == "Natal Birth" &&
+                        saveData.contains("aspectPatterns")) {
+                        m_currentAspectPatterns = AspectPatternDetector::fromJson(saveData["aspectPatterns"].toObject());
+                        updateAspectPatternsTable(m_currentAspectPatterns);
+                    }
                 }
 
                 m_chartCalculated = true;

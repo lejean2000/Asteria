@@ -498,8 +498,6 @@ void MainWindow::createCompositeChart() {
 
     // Display the chart
     m_currentChartData = compositeChartData;
-    m_interpretations = QJsonArray(); // Discard interpretations from any previously displayed chart
-    renderAllInterpretations();
     displayChart(compositeChartData);
     m_chartCalculated = true;
     AsteriaGlobals::lastGeneratedChartType = "Composite Relationship";
@@ -849,6 +847,7 @@ void MainWindow::createSynastryChart()
     m_progressionYear = 0;
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
+    aspectPatternsTable->setRowCount(0); // patterns are natal-only, for now
 
     // Person A plays the "natal" (inner wheel) role, Person B the "progressed"
     // (outer wheel) role in the generic bi-wheel infrastructure shared with
@@ -897,8 +896,6 @@ void MainWindow::createSynastryChart()
     getPredictionButton->setEnabled(false);
     getTransitsButton->setEnabled(false);
 
-    m_interpretations = QJsonArray();
-    renderAllInterpretations();
     statusBar()->showMessage("Synastry chart calculated successfully", 3000);
 
     QString infoText = QString(
