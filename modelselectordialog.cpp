@@ -69,9 +69,16 @@ ModelSelectorDialog::ModelSelectorDialog(QWidget *parent)
 
     //QLabel *infoLabel = new QLabel(tr("Note: Works best with Mistral, OpenAI (ChatGPT), and Ollama (local) models."));
     //infoLabel->setToolTip("");
-    QLabel *infoLabel = new QLabel(tr("Note: Works with any OpenAI-compatible API model.Hover for details"));
+    QLabel *infoLabel = new QLabel(tr("Note: Works with any OpenAI-compatible API model. New here? Try OpenRouter — hover for details"));
     infoLabel->setToolTip(tr(
+        "<b>New to AI APIs? Start with OpenRouter:</b><br>"
+        "1. Sign up free at openrouter.ai (no credit card needed)<br>"
+        "2. Create a key at openrouter.ai/settings/keys<br>"
+        "3. Endpoint: https://openrouter.ai/api/v1/chat/completions<br>"
+        "4. Model Name: pick any ID ending in \":free\" from openrouter.ai/models "
+        "(e.g. deepseek/deepseek-chat-v3.1:free) to use it at no cost<br><br>"
         "<b>✅ Fully compatible (OpenAI format):</b><br>"
+        "• OpenRouter (aggregates many models/providers, incl. free ones)<br>"
         "• Mistral<br>"
         "• OpenAI (ChatGPT, GPT-4)<br>"
         "• Groq (fast inference, free tier)<br>"

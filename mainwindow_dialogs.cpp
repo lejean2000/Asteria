@@ -112,20 +112,38 @@ void MainWindow::showHowToUseDialog() {
             <li><b>Zodiac Signs:</b> The twelve signs of the zodiac form the outer wheel of the chart.</li>
         </ul>
         <h3>Getting AI Interpretations</h3>
-        <p>Asteria L works with any AI provider that uses the OpenAI-compatible API format. To use this feature:</p>
+        <p>Asteria L works with any AI provider that uses the OpenAI-compatible API format. This requires an API key from a provider, which can seem intimidating if you've never done it before — the walkthrough below covers the easiest option step by step.</p>
         <ol>
             <li><b>Choose an AI provider:</b>
                 <ul>
-                    <li>Recommended: <b>DeepSeek v4 Pro</b> or <b>Kimi K2.6</b> — both deliver excellent astrological interpretations at low cost.</li>
+                    <li><b>Easiest for beginners: OpenRouter.</b> One account and one API key give you access to dozens of models (DeepSeek, Kimi, Llama, Gemma, Mistral, and more) — including several completely <b>free</b> models, so you can try Asteria's AI features without paying anything or providing billing details.</li>
+                    <li>Recommended paid models (via OpenRouter or directly): <b>DeepSeek v4 Pro</b> or <b>Kimi K2.6</b> — both deliver excellent astrological interpretations at low cost.</li>
                     <li>Also compatible with OpenAI, Groq, Mistral, Ollama (local), and any OpenAI-compatible endpoint.</li>
                     <li><b>Not compatible:</b> Anthropic Claude and Google Gemini use different API formats and will not work.</li>
                 </ul>
             </li>
-            <li><b>Get your API key</b> from your chosen provider's developer console and keep it secure.</li>
+            <li><b>Get a free API key from OpenRouter (recommended path):</b>
+                <ul>
+                    <li>Go to <a href="https://openrouter.ai/">openrouter.ai</a> and sign up (email, Google, or GitHub — no credit card required).</li>
+                    <li>Once logged in, click your account icon (top right) and go to <b>Keys</b>, or go directly to <a href="https://openrouter.ai/settings/keys">openrouter.ai/settings/keys</a>.</li>
+                    <li>Click <b>Create Key</b>, give it any name (e.g. "Asteria"), and click Create.</li>
+                    <li>Copy the key immediately — it starts with <code>sk-or-</code> and is only shown once. Store it somewhere safe.</li>
+                    <li>To find a free model, browse <a href="https://openrouter.ai/models?max_price=0">openrouter.ai/models (filtered to free)</a>. Free model IDs end in <code>:free</code>, for example <code>deepseek/deepseek-chat-v3.1:free</code> or <code>meta-llama/llama-3.3-70b-instruct:free</code>. Availability changes over time, so check the current list.</li>
+                    <li>Free models may be slower, rate-limited, or occasionally unavailable — if you outgrow them, the same OpenRouter key works with any paid model on the site, you just change the Model Name.</li>
+                </ul>
+            </li>
+            <li><b>If you'd rather use a different provider:</b> get your API key from that provider's own developer console/dashboard instead (e.g. Mistral, OpenAI, Groq) and keep it secure.</li>
             <li><b>Configure a model in Asteria L:</b>
                 <ul>
                     <li>Go to <b>Settings → Configure AI Models</b></li>
-                    <li>Click <b>Add</b> and fill in the endpoint URL, API key, and model name</li>
+                    <li>Click <b>Add</b> and fill in:
+                        <ul>
+                            <li>Provider: <code>OpenRouter</code> (or your chosen provider's name)</li>
+                            <li>Endpoint URL: <code>https://openrouter.ai/api/v1/chat/completions</code> (for OpenRouter)</li>
+                            <li>API Key: paste the key you copied</li>
+                            <li>Model Name: the model ID, e.g. <code>deepseek/deepseek-chat-v3.1:free</code></li>
+                        </ul>
+                    </li>
                     <li>Set it as the active model and click Save</li>
                 </ul>
             </li>
@@ -137,7 +155,7 @@ void MainWindow::showHowToUseDialog() {
                 </ul>
             </li>
         </ol>
-        <p><b>Note:</b> Cloud providers require an internet connection and may charge per use. For free local models, install <a href="https://ollama.ai/">Ollama</a> and configure it with endpoint <code>http://localhost:11434/v1</code>.</p>
+        <p><b>Note:</b> Cloud providers require an internet connection; paid models charge per use, but OpenRouter's free (<code>:free</code>) models cost nothing. For a fully offline, free alternative, install <a href="https://ollama.ai/">Ollama</a> and configure it with endpoint <code>http://localhost:11434/v1</code>.</p>
         <h3>Tips & Features</h3>
         <ul>
             <li>Hover your mouse over planets, signs, and houses on the chart to see detailed tooltips containing valuable information.</li>
