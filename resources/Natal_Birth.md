@@ -6,6 +6,14 @@ You are given structured JSON chart data containing:
 * **Angles**: Ascendant, Midheaven (and optionally Descendant and IC). Each with `id`, `longitude`, and `sign`.
 * **House cusps**: Each with `id` (e.g., "House1"), `longitude`, and `sign`. The `house` field on every body indicates which natal house it occupies, determined from these cusps. 
 * **Aspects**: Major aspects only. Each with `aspectType` (e.g., "Conjunction", "Opposition", "Trine", "Square", "Sextile", "Quincunx"), `orb` (in degrees), `planet1` (id), and `planet2` (id). Aspects may involve any of the bodies listed above, including angles, asteroids, and points.
+* **`aspectPatterns`**: Pre-detected composite configurations, already algorithmically identified from the aspect list — you do not need to derive these yourself. Present when found:
+  * `clusters` — 3+ bodies bound by conjunctions (`planets`, `subtype`: "Tight" = all mutually conjunct, "Loose" = a conjunct chain).
+  * `easyOppositions` — an opposition (`pole1`/`pole2`) eased by a third body (`easing`) sextile one pole and trine the other.
+  * `tSquares` — an opposition (`pole1`/`pole2`) squared by a third body (`apex`).
+  * `grandCrosses` — four bodies (`planets`) in two interlocking oppositions, all four cross-legs square.
+  * `grandTrines` — three bodies (`planets`) each trine the other two.
+  * `kites` — a Grand Trine (`grandTrinePlanets`) with a fourth body (`tail`) opposing one vertex (`apex`) and sextile the other two.
+  * `spikes` — two bodies (`base`) sharing the same wide aspect to a third (`apex`); `spikeType` "Yod" (sextile base / quincunx apex) or "ThorHammer" (square base / sesquiquadrate apex).
 
 ---
 
@@ -15,6 +23,7 @@ You are given structured JSON chart data containing:
 
 * Do **not** recalculate or verify any value. The JSON is authoritative.
 * All aspects are listed in the `aspects` array. Do not derive aspects from longitudes — if an aspect is not listed, it is out of orb or does not exist.
+* If `aspectPatterns` is present, treat it as the authoritative and exhaustive list of composite configurations (T-squares, Grand Crosses, Grand Trines, Kites, Yods, Thor's Hammers, clusters, easy oppositions). Do not scan `aspects` yourself to hunt for additional configurations, and do not claim one exists if it is absent from `aspectPatterns`.
 * The `house` field on each body tells you exactly which natal house it occupies. Do not recalculate.
 * The natal Sun-Moon phase may be determined **directly** from the angular separation between the Sun and Moon `longitude` values (using standard modulo arithmetic and the 8-phase model) but do not cross-reference ephemerides. Calculate in one simple step.
 
@@ -106,7 +115,7 @@ When aspects involving these points are present, apply the same house-anchoring 
 Scan all provided data for:
 
 * **Stelliums** (3+ bodies in one sign or house): These are concentrated power zones. Describe the dominant archetype. If a stellium mixes sign and house differently, note the interplay.
-* **Major Aspect Configurations**: Identify T-squares, Grand Crosses, Grand Trines, Kites, Yods, etc. Explain each configuration — the planets, signs, houses, and the core challenge or gift.
+* **Major Aspect Configurations**: Use the pre-detected `aspectPatterns` field (if present) rather than deriving these yourself. Explain each configuration present there — the planets, signs, houses, and the core challenge or gift.
 * **Retrograde Planets**: Multiple retrogrades indicate an introspective, karmic personality. Note which house themes are internally processed.
 * **Anaretic (29°) and 0° Placements**: Any body at 29° or 0° of a sign holds profound urgency. Name the body and its house, describing the sense of “now or never.”
 * **Empty Houses and Elemental Balance**: Briefly note the overall elemental and modal distribution (fire, earth, air, water; cardinal, fixed, mutable). A deficit or surplus shapes temperament. Empty houses are life areas that operate without a planetary occupant — note them but do not dwell.

@@ -319,6 +319,10 @@ void MainWindow::getInterpretation() {
             dataToSend["planets"] = filterPlanets(m_currentChartData["planets"].toArray());
             dataToSend["aspects"] = filterAspectsForBodies(m_currentChartData["aspects"].toArray());
         }
+        // Aspect patterns are natal-only, for now.
+        if (AsteriaGlobals::lastGeneratedChartType == "Natal Birth") {
+            dataToSend["aspectPatterns"] = AspectPatternDetector::toJson(m_currentAspectPatterns);
+        }
     }
 
     dataToSend = roundJsonDoubles(dataToSend).toObject();
