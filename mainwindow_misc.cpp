@@ -55,6 +55,26 @@ void MainWindow::showNewFeaturesDialog() {
         // Set the new features content
         QString featuresText = R"(
 
+<h1 style="color:#27ae60;">What's New in Asteria L Version 0.11</h1>
+<p><i>September 23, 2026</i></p>
+
+<ul>
+<li><b>Aspect pattern detection</b> for natal charts (T-Square, Grand Cross, Grand Trine, Kite, Yod, Thor's Hammer, clusters, easy oppositions) in a new Aspect Patterns tab</li>
+<li><b>Reworked natal AI reading:</b> uses the detected patterns; an integrated, less technical essay</li>
+<li><b>OpenRouter setup guide</b> (including free models) in Help → How to Use</li>
+<li>New AI model configs default to temperature 1.0 and 32768 max tokens</li>
+</ul>
+
+<h1 style="color:#27ae60;">What's New in Asteria L Version 0.10</h1>
+<p><i>August 23, 2026</i></p>
+
+<ul>
+<li><b>Synastry</b> bi-wheel chart with interaspects and a dedicated AI reading</li>
+<li><b>Draconic</b> bi-wheel chart with its own AI reading</li>
+<li><b>Copy HTML</b> option in the interpretation context menu</li>
+<li>"Waiting for AI reply" progress indicator; interpretations are kept when a new chart is generated</li>
+</ul>
+
 <h1 style="color:#27ae60;">What's New in Asteria L Version 0.9</h1>
 <p><i>April 30, 2026</i></p>
 

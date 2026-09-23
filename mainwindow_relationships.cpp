@@ -1089,7 +1089,24 @@ void MainWindow::showChangelog(){
 
 <h1>Changelog</h1>
 
-<h2>Version 0.9 (2026-04-30) <span style='color:#27ae60;'>— Asteria L fork by lejean2000</span></h2>
+<h2>Version 0.11 (2026-09-23)</h2>
+<ul>
+  <li><b>Aspect pattern detection</b> for natal charts (T-Square, Grand Cross, Grand Trine, Kite, Yod, Thor's Hammer, clusters, easy oppositions) in a new Aspect Patterns tab</li>
+  <li><b>Reworked natal AI reading:</b> uses the detected patterns; an integrated, less technical essay</li>
+  <li><b>OpenRouter setup guide</b> (including free models) in Help → How to Use</li>
+  <li>New AI model configs default to temperature 1.0 and 32768 max tokens</li>
+</ul>
+
+<h2>Version 0.10 (2026-08-23)</h2>
+<ul>
+  <li><b>Synastry</b> bi-wheel chart with interaspects and a dedicated AI reading</li>
+  <li><b>Draconic</b> bi-wheel chart with its own AI reading</li>
+  <li><b>Copy HTML</b> option in the interpretation context menu</li>
+  <li>"Waiting for AI reply" progress indicator; interpretations are kept when a new chart is generated</li>
+  <li><b>Fixes:</b> transits always use the true natal chart, swapped synastry wheel labels</li>
+</ul>
+
+<h2>Version 0.9(2026-04-30) <span style='color:#27ae60;'>— Asteria L fork by lejean2000</span></h2>
 <ul>
   <li><b>Dual progressed/natal bi-wheel chart</b> with full save and reload support</li>
   <li><b>Extended AI prompts:</b> richer natal chart narrative, dedicated progressed chart prompt, improved transit interpretations</li>

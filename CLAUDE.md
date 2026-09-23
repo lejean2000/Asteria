@@ -92,6 +92,7 @@ Set up in `main.cpp` via `qInstallMessageHandler`. Format: `hh:mm:ss.zzz [D/W/C/
 | `elementmodalitywidget.h/.cpp` | Element/modality balance display. |
 | `planetlistwidget.h/.cpp` | Table of planets with sign/house/degree. |
 | `aspectsettingsdialog.h/.cpp` | Dialog for aspect line visual settings. |
+| `aspectpatterndetector.h/.cpp` | Graph-based detection of aspect patterns (clusters, T-squares, Grand Crosses/Trines, Kites, Yods, Thor's Hammers, easy oppositions) from an existing aspect list. Natal charts only; shown in the "Aspect Patterns" tab, saved as `aspectPatterns`, and sent to the AI. |
 | `osmmapdialog.h/.cpp` | OpenStreetMap dialog for picking birth coordinates. Uses QtLocation/QML (`map.qml`). |
 | `transitsearchdialog.h/.cpp` | Filter/search dialog for transit table results. |
 | `symbolsdialog.h/.cpp` | Reference dialog showing astrological symbols legend. |
@@ -224,4 +225,4 @@ The draconic chart itself is a pure rigid-rotation transform, computed in `Chart
 
 ## Version
 
-App name: `Asteria L`. Current version: `0.9` (set in `main.cpp` via `QCoreApplication::setApplicationVersion`).
+App name: `Asteria L`. Current version: `0.11` (set in `main.cpp` via `QCoreApplication::setApplicationVersion`).

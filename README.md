@@ -11,7 +11,8 @@ This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by
 - A **dual progressed/natal bi-wheel chart** with progressed-to-natal interaspects
 - A **Draconic chart** bi-wheel with its own soul-layer-vs-outward-personality AI reading
 - Full **Synastry** bi-wheel with interaspects and a dedicated relationship AI reading, alongside Composite and Davison charts
-- A longer, in-depth **natal chart AI reading** and **improved transit interpretations** — transits are always calculated against your true natal chart, no matter what chart type is currently on screen
+- Automatic **aspect pattern detection** for natal charts (T-Squares, Grand Crosses, Grand Trines, Kites, Yods, Thor's Hammers, clusters, easy oppositions), shown in its own tab and fed to the AI so readings never invent or miss a configuration
+- A longer, in-depth **natal chart AI reading** — a flowing, jargon-light essay with themed sections and a closing guiding metaphor — and **improved transit interpretations** — transits are always calculated against your true natal chart, no matter what chart type is currently on screen
 - Every AI reading is saved as a structured entry (chart, transit, or info) with timestamp, model name, and transit period, and is **backward compatible** with old save files
 - **Collapsible headers** in the interpretation window so multiple readings stay organized, plus a **Copy HTML** option for pasting formatted readings straight into Word or other rich-text apps
 - An indeterminate **"Waiting for AI reply..."** progress indicator while a chart or transit interpretation is in flight
@@ -26,10 +27,11 @@ This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by
 - **Draconic Chart (Dual Bi-Wheel)**: Compare your natal chart against its draconic rotation, with draconic-to-natal interaspects and a dedicated soul-layer AI reading
 - **Interactive Chart Display**: Visually explore your astrological chart with an intuitive interface
 - **Aspect Analysis**: Examine the relationships between planets with detailed aspect tables
+- **Aspect Pattern Detection**: Natal charts automatically list major configurations (T-Square, Grand Cross, Grand Trine, Kite, Yod, Thor's Hammer, conjunction clusters, easy oppositions) in a dedicated "Aspect Patterns" tab
 - **House and Sign Placements**: View planetary positions by house and zodiac sign
 - **Element & Modality Balance**: Analyze the distribution of elements and modalities in your chart
 - **AI-Powered Interpretations**: Receive personalized chart readings using advanced AI technology
-  - Long-form natal readings based on a 130-line structured prompt
+  - Long-form natal readings based on a structured prompt, written as an integrated, psychologically minded essay rather than a list of aspects, and informed by the detected aspect patterns
   - Enhanced transit interpretations with period-aware context, always grounded in your true natal chart
   - Interpretations stored as typed, timestamped entries with collapsible headers
   - **Copy HTML** from any interpretation card's context menu for formatted paste into Word and other rich-text editors
@@ -53,6 +55,16 @@ To build from source:
 - Install
 
 Build requirements: CMake + Ninja, MSVC 2022 BuildTools, Qt 6, and the Swiss Ephemeris source. The Swiss Ephemeris data path is configurable via CMake options.
+
+## Setting Up AI Interpretations
+
+AI readings need an API key from any OpenAI-compatible provider. The easiest start is [OpenRouter](https://openrouter.ai/): sign up (no credit card needed), create a key at [openrouter.ai/settings/keys](https://openrouter.ai/settings/keys), then in Asteria L go to **Settings → Configure AI Models → Add** and enter:
+
+- Endpoint URL: `https://openrouter.ai/api/v1/chat/completions`
+- API Key: your `sk-or-...` key
+- Model Name: any model ID — IDs ending in `:free` (see [free models](https://openrouter.ai/models?max_price=0)) cost nothing
+
+New model configs default to temperature 1.0 and 32768 max tokens, since the prompts are long and produce long readings. Full step-by-step guidance is in **Help → How to Use**.
 
 ## Usage
 

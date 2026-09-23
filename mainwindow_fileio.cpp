@@ -255,12 +255,13 @@ void MainWindow::loadChart() {
                     // ── Regular single chart ────────────────────────────────
                     AsteriaGlobals::lastGeneratedChartType =
                         saveData.value("chartType").toString("Natal Birth").replace('-', ' ');
-                    displayChart(m_currentChartData);
+                    // Aspect patterns are natal-only, for now. Detect them from the
+                    // loaded data (older save files have no "aspectPatterns" key),
+                    // then prefer the saved patterns when present.
+                    const bool isNatal = AsteriaGlobals::lastGeneratedChartType == "Natal Birth";
+                    displayChart(m_currentChartData, isNatal);
 
-                    // Aspect patterns are natal-only, for now; older save files
-                    // may not have this key.
-                    if (AsteriaGlobals::lastGeneratedChartType == "Natal Birth" &&
-                        saveData.contains("aspectPatterns")) {
+                    if (isNatal && saveData.contains("aspectPatterns")) {
                         m_currentAspectPatterns = AspectPatternDetector::fromJson(saveData["aspectPatterns"].toObject());
                         updateAspectPatternsTable(m_currentAspectPatterns);
                     }
