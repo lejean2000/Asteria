@@ -848,6 +848,7 @@ void MainWindow::createSynastryChart()
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
     aspectPatternsTable->setRowCount(0); // patterns are natal-only, for now
+    updatePresidingGeniusPanel(m_currentDaemons = DaemonResults());
 
     // Person A plays the "natal" (inner wheel) role, Person B the "progressed"
     // (outer wheel) role in the generic bi-wheel infrastructure shared with

@@ -93,6 +93,7 @@ Set up in `main.cpp` via `qInstallMessageHandler`. Format: `hh:mm:ss.zzz [D/W/C/
 | `planetlistwidget.h/.cpp` | Table of planets with sign/house/degree. |
 | `aspectsettingsdialog.h/.cpp` | Dialog for aspect line visual settings. |
 | `aspectpatterndetector.h/.cpp` | Graph-based detection of aspect patterns (clusters, T-squares, Grand Crosses/Trines, Kites, Yods, Thor's Hammers, easy oppositions) from an existing aspect list. Natal charts only; shown in the "Aspect Patterns" tab, saved as `aspectPatterns`, and sent to the AI. |
+| `daemoncalculator.h/.cpp` | Presiding daemon/genius after Agrippa III.21/III.26 (Purdue's reconstruction): planetary significators by several traditional methods plus a consensus, and Hebrew-letter names. Uses its own Alcabitius houses, sect-aware Part of Fortune, pre-natal lunation and planetary day/hour (independent of the chart's house system). Natal charts only; shown in the "Presiding Genius" tab, saved as `presidingGenius`. Only the significators are sent to the AI, not the names. |
 | `osmmapdialog.h/.cpp` | OpenStreetMap dialog for picking birth coordinates. Uses QtLocation/QML (`map.qml`). |
 | `transitsearchdialog.h/.cpp` | Filter/search dialog for transit table results. |
 | `symbolsdialog.h/.cpp` | Reference dialog showing astrological symbols legend. |

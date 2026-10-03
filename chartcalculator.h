@@ -7,6 +7,7 @@
 #include <QString>
 #include <QVector>
 #include "astro_types.h"
+#include "daemoncalculator.h"
 
 // Forward declare Swiss Ephemeris types to avoid including C headers in header
 typedef void* SWEPH_HANDLE;
@@ -225,6 +226,15 @@ public:
     // House placement and aspects are unaffected by a rigid rotation, so only
     // longitude/sign are recomputed.
     ChartData calculateDraconicChart(const ChartData &natal) const;
+
+    // Ephemeris inputs for the presiding daemon / genius methods (Agrippa).
+    // Independent of the user's house system: these always use Alcabitius.
+    DaemonInputs calculateDaemonInputs(const QDate &birthDate,
+                                       const QTime &birthTime,
+                                       const QString &utcOffset,
+                                       const QString &latitude,
+                                       const QString &longitude,
+                                       QString *error = nullptr) const;
 
     // Swiss Ephemeris calculation methods
     QVector<HouseData> calculateHouseCusps(double jd, double lat, double lon, const QString &houseSystem) const;

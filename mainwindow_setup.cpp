@@ -216,6 +216,11 @@ void MainWindow::setupCentralWidget() {
     aspectPatternsTable->setHorizontalHeaderLabels({"Pattern", "Planets", "Details"});
     aspectPatternsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
+    // Presiding Genius panel (natal charts only)
+    presidingGeniusBrowser = new QTextBrowser(detailsTabs);
+    presidingGeniusBrowser->setObjectName("PresidingGenius");
+    presidingGeniusBrowser->setOpenLinks(false);
+
     // make all tables copiable
     QList<QTableWidget*> tables = {planetsTable, anglesTable, housesTable, aspectsTable, rawTransitTable, eclipseTable, aspectPatternsTable};
 
@@ -272,6 +277,7 @@ void MainWindow::setupCentralWidget() {
     detailsTabs->addTab(rawTransitTable, "Raw Transit Data");
     detailsTabs->addTab(eclipseTable, "Eclipses");
     detailsTabs->addTab(aspectPatternsTable, "Aspect Patterns");
+    detailsTabs->addTab(presidingGeniusBrowser, "Presiding Genius");
 
     detailsLayout->addWidget(detailsTabs);
 

@@ -30,6 +30,16 @@ ChartData ChartDataManager::calculateDraconicChart(const ChartData &natal)
     return m_calculator->calculateDraconicChart(natal);
 }
 
+DaemonInputs ChartDataManager::calculateDaemonInputs(const QDate &birthDate,
+                                                     const QTime &birthTime,
+                                                     const QString &utcOffset,
+                                                     const QString &latitude,
+                                                     const QString &longitude,
+                                                     QString *error)
+{
+    return m_calculator->calculateDaemonInputs(birthDate, birthTime, utcOffset, latitude, longitude, error);
+}
+
 bool ChartDataManager::isCalculatorAvailable() const
 {
     return m_calculator->isAvailable();

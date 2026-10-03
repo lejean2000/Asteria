@@ -64,6 +64,7 @@
 #include "model.h"
 #include "modelselectordialog.h"
 #include "aspectpatterndetector.h"
+#include "daemoncalculator.h"
 
 struct ParsedDate {
     int year;   // Astronomical year (negative for BCE, 0 for 1 BCE, etc.)
@@ -191,6 +192,11 @@ private:
     QTableWidget *aspectPatternsTable;
     AspectPatternResults m_currentAspectPatterns; // valid only when the natal chart is displayed
     void updateAspectPatternsTable(const AspectPatternResults &results);
+    // Presiding daemon / genius (natal charts only)
+    QTextBrowser *presidingGeniusBrowser;
+    DaemonResults m_currentDaemons; // valid only when the natal chart is displayed
+    void calculatePresidingGenius(); // from the birth data in the input dock
+    void updatePresidingGeniusPanel(const DaemonResults &results);
 private slots:
     void getPrediction();
     void displayTransitInterpretation(const QString &interpretation);

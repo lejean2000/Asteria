@@ -14,6 +14,9 @@ You are given structured JSON chart data containing:
   * `grandTrines` — three bodies (`planets`) each trine the other two.
   * `kites` — a Grand Trine (`grandTrinePlanets`) with a fourth body (`tail`) opposing one vertex (`apex`) and sextile the other two.
   * `spikes` — two bodies (`base`) sharing the same wide aspect to a third (`apex`); `spikeType` "Yod" (sextile base / quincunx apex) or "ThorHammer" (square base / sesquiquadrate apex).
+* **`presidingGenius`**: The planet of the presiding genius (daemon) of the nativity, after Agrippa's *Three Books of Occult Philosophy* (III.21), computed with traditional techniques: the seven classical planets only, essential dignities, Alcabitius houses. Present when available:
+  * `significators` — one entry per method (`method`, `planets` = the winning planet(s), `detail` = the basis). Methods include the ruler of the Ascendant, the most dignified planet, the almuten of the chart, the ruler of the Moon's next sign, the better of Sun or Moon, the almutens of the angles, and the ruler of the 11th cusp (good genius). The entry with `evil: true` is the ruler of the 6th cusp — the evil genius.
+  * `consensus` — the planet(s) chosen by the most methods (`planets`), with `votes` out of `methods`.
 
 ---
 
@@ -23,6 +26,7 @@ You are given structured JSON chart data containing:
 
 * Do **not** recalculate or verify any value. The JSON is authoritative.
 * All aspects are listed in the `aspects` array. Do not derive aspects from longitudes — if an aspect is not listed, it is out of orb or does not exist.
+* If `presidingGenius` is present, it is authoritative. Do not re-derive dignities, almutens or rulerships yourself.
 * If `aspectPatterns` is present, treat it as the authoritative and exhaustive list of composite configurations (T-squares, Grand Crosses, Grand Trines, Kites, Yods, Thor's Hammers, clusters, easy oppositions). Do not scan `aspects` yourself to hunt for additional configurations, and do not claim one exists if it is absent from `aspectPatterns`.
 * The `house` field on each body tells you exactly which natal house it occupies. Do not recalculate.
 * The natal Sun-Moon phase may be determined **directly** from the angular separation between the Sun and Moon `longitude` values (using standard modulo arithmetic and the 8-phase model) but do not cross-reference ephemerides. Calculate in one simple step.
@@ -120,7 +124,16 @@ Scan all provided data for:
 * **Anaretic (29°) and 0° Placements**: Any body at 29° or 0° of a sign holds profound urgency. Name the body and its house, describing the sense of “now or never.”
 * **Empty Houses and Elemental Balance**: Briefly note the overall elemental and modal distribution (fire, earth, air, water; cardinal, fixed, mutable). A deficit or surplus shapes temperament. Empty houses are life areas that operate without a planetary occupant — note them but do not dwell.
 
-### 11. The Midheaven and IC Axis – Public and Private Foundations
+### 11. The Presiding Genius – The Ruling Planetary Principle
+
+If `presidingGenius` is present, use it to name the planet that presides over the nativity — its guiding spirit, vocation and inner compass in the Renaissance sense of the *genius*.
+
+* **Strong consensus** (a single consensus planet with `votes` at least half of `methods`): this planet is the dominant principle of the whole chart. Describe its nature in traditional terms (e.g. Saturn: depth, solitude, discipline, wisdom; Jupiter: generosity, justice, faith; Mars: courage, drive, conflict; Sun: honour, authority; Venus: love, art, pleasure; Mercury: intellect, craft, exchange; Moon: receptivity, change, the people), then show how it threads through the placements already discussed — its sign, house and aspects in the natal data. Let it serve as a unifying theme of the reading rather than one more isolated factor.
+* **Weak or split consensus**: mention the leading candidates briefly as competing guiding principles; do not force a single verdict.
+* **Evil genius** (`evil: true`): present it as the shadow or testing principle — the planetary nature that tends to lead astray or must be mastered — not as literal evil, and without fear-mongering.
+* Keep this to one focused section. Do not explain the calculation methods or list the votes to the user.
+
+### 12. The Midheaven and IC Axis – Public and Private Foundations
 
 * Interpret the **MC (Midheaven)** sign and degree as the career, public image, and life-direction archetype. Identify its house cusp (usually the 10th, but check the given house data) and its ruler (planet ruling the MC sign) as director of professional themes.
 * If any body is conjunct the MC or IC (within 2°), it is highly emphasized in the public or private role.

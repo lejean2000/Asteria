@@ -12,6 +12,7 @@ This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by
 - A **Draconic chart** bi-wheel with its own soul-layer-vs-outward-personality AI reading
 - Full **Synastry** bi-wheel with interaspects and a dedicated relationship AI reading, alongside Composite and Davison charts
 - Automatic **aspect pattern detection** for natal charts (T-Squares, Grand Crosses, Grand Trines, Kites, Yods, Thor's Hammers, clusters, easy oppositions), shown in its own tab and fed to the AI so readings never invent or miss a configuration
+- A **Presiding Genius** panel for natal charts: the planet of the nativity's daemon after Agrippa's *Three Books of Occult Philosophy*, found by several traditional methods with a consensus, plus Agrippa's Hebrew-letter names. The ruling planet is fed to the AI
 - A longer, in-depth **natal chart AI reading** — a flowing, jargon-light essay with themed sections and a closing guiding metaphor — and **improved transit interpretations** — transits are always calculated against your true natal chart, no matter what chart type is currently on screen
 - Every AI reading is saved as a structured entry (chart, transit, or info) with timestamp, model name, and transit period, and is **backward compatible** with old save files
 - **Collapsible headers** in the interpretation window so multiple readings stay organized, plus a **Copy HTML** option for pasting formatted readings straight into Word or other rich-text apps
@@ -28,6 +29,7 @@ This is a fork of the [Asteria](https://github.com/alamahant/Asteria) project by
 - **Interactive Chart Display**: Visually explore your astrological chart with an intuitive interface
 - **Aspect Analysis**: Examine the relationships between planets with detailed aspect tables
 - **Aspect Pattern Detection**: Natal charts automatically list major configurations (T-Square, Grand Cross, Grand Trine, Kite, Yod, Thor's Hammer, conjunction clusters, easy oppositions) in a dedicated "Aspect Patterns" tab
+- **Presiding Genius**: Identifies the planet ruling the natal chart's genius (daemon) using Agrippa's methods, as reconstructed by Eric Purdue, and shows the evil genius and the Hebrew-letter names, in a dedicated "Presiding Genius" tab
 - **House and Sign Placements**: View planetary positions by house and zodiac sign
 - **Element & Modality Balance**: Analyze the distribution of elements and modalities in your chart
 - **AI-Powered Interpretations**: Receive personalized chart readings using advanced AI technology

@@ -322,6 +322,9 @@ void MainWindow::getInterpretation() {
         // Aspect patterns are natal-only, for now.
         if (AsteriaGlobals::lastGeneratedChartType == "Natal Birth") {
             dataToSend["aspectPatterns"] = AspectPatternDetector::toJson(m_currentAspectPatterns);
+            // Significators only - the Hebrew names carry no interpretable meaning.
+            if (!m_currentDaemons.isEmpty())
+                dataToSend["presidingGenius"] = DaemonCalculator::significatorsToJson(m_currentDaemons);
         }
     }
 

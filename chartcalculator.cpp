@@ -391,6 +391,22 @@ ChartData ChartCalculator::calculateDraconicChart(const ChartData &natal) const
     return draconic;
 }
 
+DaemonInputs ChartCalculator::calculateDaemonInputs(const QDate &birthDate,
+                                                    const QTime &birthTime,
+                                                    const QString &utcOffset,
+                                                    const QString &latitude,
+                                                    const QString &longitude,
+                                                    QString *error) const
+{
+    if (!m_isInitialized) {
+        if (error)
+            *error = "Swiss Ephemeris not initialized";
+        return DaemonInputs();
+    }
+    double jd = dateTimeToJulianDay(QDateTime(birthDate, birthTime), utcOffset);
+    return DaemonCalculator::inputsFromEphemeris(jd, latitude.toDouble(), longitude.toDouble(), error);
+}
+
 ChartData ChartCalculator::calculateChart(const QDate &birthDate,
                                           const QTime &birthTime,
                                           const QString &utcOffset,

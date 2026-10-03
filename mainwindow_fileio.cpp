@@ -77,6 +77,7 @@ void MainWindow::newChart() {
 
     // Clear chart renderer
     m_chartRenderer->scene()->clear();
+    updatePresidingGeniusPanel(m_currentDaemons = DaemonResults());
 
     renderAllInterpretations();
     m_getInterpretationButton->setEnabled(false);
@@ -153,6 +154,8 @@ void MainWindow::saveChart() {
     // Aspect patterns are natal-only, for now
     if (AsteriaGlobals::lastGeneratedChartType == "Natal Birth") {
         saveData["aspectPatterns"] = AspectPatternDetector::toJson(m_currentAspectPatterns);
+        if (!m_currentDaemons.isEmpty())
+            saveData["presidingGenius"] = DaemonCalculator::toJson(m_currentDaemons);
     }
 
     // Check if this is a secondary progression bi-wheel
@@ -265,6 +268,10 @@ void MainWindow::loadChart() {
                         m_currentAspectPatterns = AspectPatternDetector::fromJson(saveData["aspectPatterns"].toObject());
                         updateAspectPatternsTable(m_currentAspectPatterns);
                     }
+                    if (isNatal && saveData.contains("presidingGenius")) {
+                        m_currentDaemons = DaemonCalculator::fromJson(saveData["presidingGenius"].toObject());
+                        updatePresidingGeniusPanel(m_currentDaemons);
+                    }
                 }
 
                 m_chartCalculated = true;
@@ -304,6 +311,14 @@ void MainWindow::loadChart() {
                 }
                 if (birthInfo.contains("googleCoords")) {
                     m_googleCoordsEdit->setText(birthInfo["googleCoords"].toString());
+                }
+
+                // Save files older than the Presiding Genius panel: recompute it
+                // from the birth data just loaded into the input fields.
+                if (AsteriaGlobals::lastGeneratedChartType == "Natal Birth"
+                        && m_currentNatalChartData.isEmpty() && m_currentDaemons.isEmpty()
+                        && !m_currentChartData.isEmpty()) {
+                    calculatePresidingGenius();
                 }
             }
 

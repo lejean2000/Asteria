@@ -79,6 +79,7 @@ void MainWindow::calculateChart()
 
         // Display chart (natal: also runs aspect pattern detection)
         displayChart(m_currentChartData, /*detectAspectPatterns=*/true);
+        calculatePresidingGenius();
         m_chartCalculated = true;
         // Set chart type for interpretation
 
@@ -166,6 +167,7 @@ void MainWindow::displayChart(const QJsonObject &chartData, bool detectAspectPat
     } else {
         m_currentAspectPatterns = AspectPatternResults();
         aspectPatternsTable->setRowCount(0);
+        updatePresidingGeniusPanel(m_currentDaemons = DaemonResults());
     }
 
     chartInfoOverlay->setVisible(m_showInfoOverlay);
@@ -419,6 +421,113 @@ void MainWindow::updateAspectPatternsTable(const AspectPatternResults &results)
         QString label = (pattern.spikeType == SpikeType::Yod) ? "Yod" : "Thor's Hammer";
         addRow(label, planetListString(pattern.base), "Apex: " + toString(pattern.apex));
     }
+}
+
+void MainWindow::calculatePresidingGenius()
+{
+    QDate birthDate = checkAndConvertJulian(getBirthDate(), useJulianForPre1582Action->isChecked());
+    QTime birthTime = QTime::fromString(m_birthTimeEdit->text(), "HH:mm");
+
+    QString error;
+    DaemonInputs inputs = m_chartDataManager.calculateDaemonInputs(
+        birthDate, birthTime, m_utcOffsetCombo->currentText(),
+        m_latitudeEdit->text(), m_longitudeEdit->text(), &error);
+    if (!error.isEmpty())
+        qWarning() << "Presiding genius:" << error;
+
+    m_currentDaemons = DaemonCalculator::compute(inputs);
+    updatePresidingGeniusPanel(m_currentDaemons);
+}
+
+void MainWindow::updatePresidingGeniusPanel(const DaemonResults &results)
+{
+    if (results.isEmpty()) {
+        presidingGeniusBrowser->setHtml(
+            "<p><i>The presiding genius is calculated for natal charts only.</i></p>");
+        return;
+    }
+
+    auto planets = [](const QVector<Planet> &list) {
+        if (list.isEmpty())
+            return QString("&mdash;");
+        QStringList names;
+        for (Planet p : list)
+            names << "<b>" + toString(p) + "</b>";
+        return names.join(", ");
+    };
+    auto hebrew = [](const GeniusName &name) {
+        return QString("<span style='font-size:large'>%1</span><br><small>%2</small>")
+            .arg(name.hebrew().toHtmlEscaped(), name.letterNames().toHtmlEscaped());
+    };
+
+    QString html;
+    html += "<h3>Presiding Genius</h3>"
+            "<p>After Agrippa, <i>Three Books of Occult Philosophy</i> III.21 and III.26, as reconstructed "
+            "by Eric Purdue. Traditional planets only, Egyptian terms, Alcabitius houses "
+            "(independent of the house system chosen for the chart). Agrippa gives several methods "
+            "and leaves the choice to the practitioner; where they agree, the indication is strong.</p>";
+
+    // ── Consensus ───────────────────────────────────────────────────────────
+    const QVector<Planet> consensus = results.consensus();
+    const int methods = results.methodCount();
+    const int votes = consensus.isEmpty() ? 0 : results.votesFor(consensus.first());
+    html += QString("<h4>Consensus: %1 &mdash; %2 of %3 methods%4</h4>")
+                .arg(planets(consensus)).arg(votes).arg(methods)
+                .arg(consensus.size() > 1 ? " each" : "");
+    html += QString("<p><small>Counted over the %1 methods for the presiding (good) genius below; "
+                    "the evil genius is listed separately and does not vote.</small></p>").arg(methods);
+    if (consensus.size() > 1 || votes * 2 < methods)
+        html += "<p><i>The methods disagree; no single planet clearly presides over this nativity.</i></p>";
+    for (Planet p : consensus)
+        html += "<p><b>" + toString(p) + ":</b> " + DaemonCalculator::planetNature(p).toHtmlEscaped() + "</p>";
+
+    // ── Significators ───────────────────────────────────────────────────────
+    html += "<h4>Significators (III.21)</h4>"
+            "<table border='1' cellspacing='0' cellpadding='4' width='100%'>"
+            "<tr><th align='left'>Method</th><th align='left'>Planet</th><th align='left'>Basis</th></tr>";
+    for (const SignificatorResult &s : results.significators) {
+        if (s.evil)
+            continue;
+        html += QString("<tr><td>%1</td><td>%2</td><td>%3</td></tr>")
+                    .arg(s.method.toHtmlEscaped(), planets(s.planets), s.detail.toHtmlEscaped());
+    }
+    html += "</table>";
+
+    for (const SignificatorResult &s : results.significators) {
+        if (!s.evil)
+            continue;
+        html += QString("<h4>Evil genius: %1</h4><p>%2. The planetary nature that tests or leads astray; "
+                        "not counted in the consensus.</p>")
+                    .arg(planets(s.planets), s.detail.toHtmlEscaped());
+    }
+
+    QVector<Planet> mentioned;
+    for (const SignificatorResult &s : results.significators)
+        for (Planet p : s.planets)
+            if (!mentioned.contains(p) && !consensus.contains(p))
+                mentioned << p;
+    if (!mentioned.isEmpty()) {
+        html += "<h4>Other planets named</h4>";
+        for (Planet p : DaemonCalculator::chaldeanOrder())
+            if (mentioned.contains(p))
+                html += "<p><b>" + toString(p) + ":</b> " + DaemonCalculator::planetNature(p).toHtmlEscaped() + "</p>";
+    }
+
+    // ── Names ───────────────────────────────────────────────────────────────
+    html += "<h4>Names (III.26)</h4>"
+            "<p><i>Agrippa casts the Hebrew alphabet over the zodiac, one letter per degree, and reads "
+            "off the letters to form names for invocation. The letters carry no interpretive meaning "
+            "and are not sent to the AI.</i></p>"
+            "<table border='1' cellspacing='0' cellpadding='4' width='100%'>"
+            "<tr><th align='left'>Method</th><th align='left'>Good genius</th>"
+            "<th align='left'>Evil genius</th><th align='left'>Read from</th></tr>";
+    for (const NameResult &n : results.names) {
+        html += QString("<tr><td>%1</td><td>%2</td><td>%3</td><td>%4</td></tr>")
+                    .arg(n.method.toHtmlEscaped(), hebrew(n.good), hebrew(n.evil), n.basis.toHtmlEscaped());
+    }
+    html += "</table>";
+
+    presidingGeniusBrowser->setHtml(html);
 }
 
 QJsonValue roundJsonDoubles(const QJsonValue &val) {

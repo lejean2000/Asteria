@@ -51,6 +51,14 @@ public:
     // Derive the draconic chart from an already-calculated natal chart
     ChartData calculateDraconicChart(const ChartData &natal);
 
+    // Ephemeris inputs for the presiding daemon / genius methods
+    DaemonInputs calculateDaemonInputs(const QDate &birthDate,
+                                       const QTime &birthTime,
+                                       const QString &utcOffset,
+                                       const QString &latitude,
+                                       const QString &longitude,
+                                       QString *error = nullptr);
+
     // Get the last error message
     QString getLastError() const;
 

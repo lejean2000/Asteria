@@ -1507,6 +1507,7 @@ void MainWindow::doSecondaryProgressionCalculation(int progressionYear)
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
     aspectPatternsTable->setRowCount(0); // patterns are natal-only, for now
+    updatePresidingGeniusPanel(m_currentDaemons = DaemonResults());
 
     // ── Calculate both charts ────────────────────────────────────────────────
     ChartData natalRaw = m_chartDataManager.calculateChart(
@@ -1593,6 +1594,7 @@ void MainWindow::calculateDraconicChart()
     m_currentRelationshipInfo = QJsonObject();
     m_chartRenderer->scene()->clear();
     aspectPatternsTable->setRowCount(0); // patterns are natal-only, for now
+    updatePresidingGeniusPanel(m_currentDaemons = DaemonResults());
 
     // ── Calculate natal chart, then derive the draconic rotation ───────────
     ChartData natalRaw = m_chartDataManager.calculateChart(
